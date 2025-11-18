@@ -80,6 +80,8 @@
       border-radius: 8px;
       border: none;
       margin: 4px 4px 0 0;
+      background: #e5e5ea;
+      color: #111;
     }
 
     .section-title {
@@ -192,6 +194,41 @@
     tr:nth-child(even) {
       background: #fafafa;
     }
+
+    /* Scorecard (landscape) styles */
+    #screen-scorecard table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+    }
+    #screen-scorecard th,
+    #screen-scorecard td {
+      border: 1px solid #ddd;
+      padding: 3px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    #screen-scorecard th:first-child,
+    #screen-scorecard td:first-child {
+      text-align: left;
+      position: sticky;
+      left: 0;
+      background: #fff;
+    }
+
+    .scorecell {
+      cursor: pointer;
+    }
+    .scorecell.ace {
+      background: #ffe58a;
+      font-weight: 700;
+    }
+    .scorecell.birdie {
+      background: #d4f8d4;
+    }
+    .scorecell.bogey {
+      background: #ffd6d6;
+    }
   </style>
 </head>
 <body>
@@ -226,7 +263,7 @@
     <section id="screen-select-players" class="hidden">
       <div class="section-title">Select Players</div>
       <ul id="playerSelectList"></ul>
-      <button class="btn" id="btnStartRoundFromSelection">Begin Round</button>
+      <button class="btn" id="btnStartRoundFromSelection">Begin Round</</button>
       <button class="btn-small btn-secondary" id="btnBackFromSelect">&lt; Home</button>
     </section>
 
@@ -247,6 +284,15 @@
         Save Round
       </button>
       <button class="btn-small btn-secondary" id="btnBackFromRound">&lt; Cancel Round</button>
+    </section>
+
+    <!-- SCORECARD (LANDSCAPE) -->
+    <section id="screen-scorecard" class="hidden">
+      <div class="section-title">Scorecard</div>
+      <div id="scorecardTableContainer"></div>
+      <p style="font-size:0.8rem;color:#666;margin-top:6px;">
+        Rotate back to portrait to return to hole-by-hole view.
+      </p>
     </section>
 
     <!-- SUMMARY -->
@@ -324,12 +370,27 @@
   const sounds = {
     click: new Audio("https://assets.mixkit.co/sfx/preview/mixkit-soft-button-click-1126.mp3"),
     nextHole: new Audio("https://assets.mixkit.co/sfx/preview/mixkit-nav-tap-2920.mp3"),
-    ace: new Audio("https://assets.mixkit.co/sfx/preview/mixkit-cartoon-bird-cry-33.mp3"),
+    ace: new Audio("https://sounds-mp3.com/mp3/0012609.mp3"),
     birdie: new Audio("https://assets.mixkit.co/sfx/preview/mixkit-small-bird-chirp-33.mp3")
   };
 
+  let audioUnlocked = false;
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    Object.values(sounds).forEach(sound => {
+      try {
+        sound.volume = 1.0;
+        sound.play().catch(()=>{});
+        sound.pause();
+        sound.currentTime = 0;
+      } catch(e){}
+    });
+    audioUnlocked = true;
+  }
+  document.addEventListener("touchstart", unlockAudio, { once: true });
+
   // ---- State ----
-  let appData = { players: [], rounds: [] }; // rounds: {id,date,scores{pid:[20]}}
+  let appData = { players: [], rounds: [] }; // rounds: {id,date,playerIds,scores{pid:[20]}}
   let currentRound = null;
   let editModeRoundId = null;
   let handicapChartInstance = null;
@@ -367,19 +428,22 @@
   }
 
   async function saveToFirebase() {
+    // extra guard: don't sync incomplete rounds
+    const incompleteExists = appData.rounds.some(r =>
+      Object.values(r.scores || {}).some(arr => arr.includes(null))
+    );
+    if (incompleteExists) {
+      console.warn("Skipped Firebase sync: incomplete round present.");
+      return;
+    }
     try {
       await setDoc(FAMILY_DOC_REF, appData);
+      console.log("Firebase updated with completed rounds.");
     } catch (e) {
-      console.warn("Firebase save error", e);
+      console.warn("Firebase save error:", e);
     }
   }
 
-  function saveAll() {
-    saveLocal();
-    saveToFirebase();
-  }
-
-  // ---- Helpers ----
   const fmt = n => n > 0 ? `+${n}` : n === 0 ? "E" : n;
 
   function getPlayer(id) {
@@ -419,10 +483,10 @@
     return timeline;
   }
 
-  // ---- Screen management ----
   function show(id) {
     document.querySelectorAll("section").forEach(s => s.classList.add("hidden"));
-    document.getElementById(id).classList.remove("hidden");
+    const el = document.getElementById(id);
+    if (el) el.classList.remove("hidden");
   }
 
   // ---- Players ----
@@ -454,20 +518,7 @@
     `).join("");
   }
 
-  // ---- Round logic ----
-  function startRound(playerIds) {
-    currentRound = {
-      id: "r_" + Date.now(),
-      date: new Date().toISOString(),
-      playerIds: playerIds.slice(),
-      currentHole: 1,
-      scores: Object.fromEntries(playerIds.map(id => [id, Array(HOLES).fill(null)]))
-    };
-    editModeRoundId = null;
-    renderRound();
-    show("screen-round");
-  }
-
+  // ---- Round + scorecard ----
   function updateSaveButtonState() {
     const btn = document.getElementById("btnFinishRoundBottom");
     if (!currentRound) {
@@ -485,6 +536,8 @@
   function renderRound() {
     if (!currentRound) return;
     const h = currentRound.currentHole;
+    const hIndex = h - 1;
+
     const roundHoleLabel = document.getElementById("roundHoleLabel");
     const holeTitle = document.getElementById("holeTitle");
     const banner = document.getElementById("roundScoreBanner");
@@ -505,7 +558,6 @@
     banner.innerHTML = bannerHtml || "No scores yet.";
 
     container.innerHTML = "";
-    const hIndex = h - 1;
 
     currentRound.playerIds.forEach(pid => {
       const row = document.createElement("div");
@@ -525,22 +577,26 @@
         btn.onclick = () => {
           currentRound.scores[pid][hIndex] = num;
 
-          // sounds
-          try {
-            if (num === 1) sounds.ace.play();
-            else if (num === 2) sounds.birdie.play();
-            else sounds.click.play();
-          } catch(e){}
+          // play sound
+          setTimeout(() => {
+            try {
+              if (num === 1) { sounds.ace.currentTime = 0; sounds.ace.play(); }
+              else if (num === 2) { sounds.birdie.currentTime = 0; sounds.birdie.play(); }
+              else { sounds.click.currentTime = 0; sounds.click.play(); }
+            } catch(e){}
+          }, 100);
 
           renderRound();
           updateSaveButtonState();
+          renderScorecard();
 
           if (currentRound.currentHole < HOLES) {
             setTimeout(() => {
               currentRound.currentHole++;
-              try { sounds.nextHole.play(); } catch(e){}
+              try { sounds.nextHole.currentTime = 0; sounds.nextHole.play(); } catch(e){}
               renderRound();
               updateSaveButtonState();
+              renderScorecard();
             }, 600);
           }
         };
@@ -558,7 +614,71 @@
     updateSaveButtonState();
   }
 
-  function finalizeRound() {
+  function renderScorecard() {
+    if (!currentRound) return;
+
+    const container = document.getElementById("scorecardTableContainer");
+    if (!container) return;
+    container.innerHTML = "";
+
+    const table = document.createElement("table");
+
+    // Header row
+    let headerHtml = "<tr><th>Player</th>";
+    for (let i = 1; i <= HOLES; i++) {
+      headerHtml += `<th>${i}</th>`;
+    }
+    headerHtml += "<th>Total</th><th>±</th></tr>";
+    table.innerHTML = headerHtml;
+
+    currentRound.playerIds.forEach(pid => {
+      const player = getPlayer(pid);
+      const scores = currentRound.scores[pid];
+      let total = 0;
+      let rowHtml = `<tr><td>${player ? player.name : "Player"}</td>`;
+
+      scores.forEach((s, idx) => {
+        let cls = "scorecell";
+        if (s === 1) cls += " ace";
+        else if (s === 2) cls += " birdie";
+        else if (s !== null && s > PAR) cls += " bogey";
+
+        if (s !== null) total += s;
+
+        rowHtml += `
+          <td class="${cls}" data-player="${pid}" data-hole="${idx}">
+            ${s ?? "-"}
+          </td>
+        `;
+      });
+
+      const diff = total ? total - COURSE_PAR : null;
+      rowHtml += `<td>${total || "-"}</td><td>${diff === null ? "-" : fmt(diff)}</td></tr>`;
+      table.innerHTML += rowHtml;
+    });
+
+    container.appendChild(table);
+  }
+
+  function handleOrientation() {
+    if (!currentRound) return;
+    const isLandscape = window.innerWidth > window.innerHeight;
+    const visibleSection = document.querySelector("section:not(.hidden)");
+    const currentId = visibleSection ? visibleSection.id : null;
+
+    if (isLandscape) {
+      if (currentId === "screen-round" || currentId === "screen-scorecard") {
+        renderScorecard();
+        show("screen-scorecard");
+      }
+    } else {
+      if (currentId === "screen-scorecard") {
+        show("screen-round");
+      }
+    }
+  }
+
+  async function finalizeRound() {
     if (!currentRound) return;
 
     const allFilled = currentRound.playerIds.every(pid =>
@@ -576,7 +696,10 @@
       appData.rounds.push(currentRound);
     }
 
-    saveAll();
+    // Local save + Firebase save ONLY when round is complete
+    saveLocal();
+    await saveToFirebase();
+
     renderSummary(currentRound);
     currentRound = null;
     editModeRoundId = null;
@@ -648,7 +771,8 @@
   window.deleteRound = id => {
     if (!confirm("Delete round?")) return;
     appData.rounds = appData.rounds.filter(r => r.id !== id);
-    saveAll();
+    saveLocal();
+    saveToFirebase();
     renderHistory();
   };
 
@@ -658,6 +782,7 @@
     editModeRoundId = id;
     currentRound = JSON.parse(JSON.stringify(r));
     renderRound();
+    handleOrientation();
     show("screen-round");
   };
 
@@ -783,9 +908,6 @@
     const barredDiv  = document.getElementById("leaderboardBarred");
     const hornedDiv  = document.getElementById("leaderboardHorned");
 
-    const fmtLine = (label, r) =>
-      `${r.player}: ${label} (${fmt(label - (label === r.total ? COURSE_PAR : 10*PAR))}) — ${r.date.toLocaleDateString()}`;
-
     overallDiv.innerHTML =
       "<h3>🏆 Best Combined (20 holes)</h3>" +
       (data.overall.length
@@ -835,6 +957,32 @@
     URL.revokeObjectURL(url);
   }
 
+  // ---- Landscape scorecard click editing ----
+  document.addEventListener("click", (e) => {
+    if (!currentRound) return;
+    if (!e.target.classList.contains("scorecell")) return;
+
+    const pid = e.target.dataset.player;
+    const holeIdx = parseInt(e.target.dataset.hole, 10);
+    if (!pid || Number.isNaN(holeIdx)) return;
+
+    const existing = currentRound.scores[pid][holeIdx];
+    const input = prompt(
+      `Score for ${getPlayer(pid)?.name || "Player"} on Hole ${holeIdx + 1}:`,
+      existing ?? ""
+    );
+    if (input === null) return; // cancelled
+
+    const val = parseInt(input, 10);
+    if (!Number.isInteger(val) || val < 1 || val > 10) return;
+
+    currentRound.scores[pid][holeIdx] = val;
+
+    renderScorecard();
+    renderRound();
+    updateSaveButtonState();
+  });
+
   // ---- Swipe navigation ----
   let touchStartX = 0;
   document.addEventListener("touchstart", e => {
@@ -846,12 +994,14 @@
     const dx = e.changedTouches[0].screenX - touchStartX;
     if (dx > 60) {
       currentRound.currentHole = Math.max(1, currentRound.currentHole - 1);
-      try { sounds.nextHole.play(); } catch(e){}
+      try { sounds.nextHole.currentTime = 0; sounds.nextHole.play(); } catch(e){}
       renderRound();
+      renderScorecard();
     } else if (dx < -60) {
       currentRound.currentHole = Math.min(HOLES, currentRound.currentHole + 1);
-      try { sounds.nextHole.play(); } catch(e){}
+      try { sounds.nextHole.currentTime = 0; sounds.nextHole.play(); } catch(e){}
       renderRound();
+      renderScorecard();
     }
   });
 
@@ -887,7 +1037,8 @@
     if (!name) return;
     appData.players.push({ id: "p_" + Date.now(), name });
     input.value = "";
-    saveAll();
+    saveLocal();
+    saveToFirebase();
     renderPlayers();
   };
 
@@ -903,18 +1054,30 @@
       alert("Select at least one player.");
       return;
     }
-    startRound(ids);
+    currentRound = {
+      id: "r_" + Date.now(),
+      date: new Date().toISOString(),
+      playerIds: ids.slice(),
+      currentHole: 1,
+      scores: Object.fromEntries(ids.map(id => [id, Array(HOLES).fill(null)]))
+    };
+    editModeRoundId = null;
+    renderRound();
+    handleOrientation();
+    show("screen-round");
   };
 
   document.getElementById("btnPrevHole").onclick = () => {
     if (!currentRound) return;
     currentRound.currentHole = Math.max(1, currentRound.currentHole - 1);
     renderRound();
+    renderScorecard();
   };
   document.getElementById("btnNextHole").onclick = () => {
     if (!currentRound) return;
     currentRound.currentHole = Math.min(HOLES, currentRound.currentHole + 1);
     renderRound();
+    renderScorecard();
   };
   document.getElementById("btnFinishRoundBottom").onclick = finalizeRound;
   document.getElementById("btnBackFromRound").onclick = () => {
@@ -925,6 +1088,10 @@
     }
   };
   document.getElementById("btnSummaryDone").onclick = () => show("screen-home");
+
+  // Orientation listeners
+  window.addEventListener("orientationchange", handleOrientation);
+  window.addEventListener("resize", handleOrientation);
 
   // ---- Init ----
   loadLocal();
