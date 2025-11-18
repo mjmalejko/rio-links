@@ -7,18 +7,15 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Rio Links">
+  <meta name="theme-color" content="#013220">
 
-  <!-- PWA APP ICONS -->
+  <!-- PWA icons & manifest -->
   <link rel="apple-touch-icon" href="apple-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-
-  <!-- PWA MANIFEST -->
   <link rel="manifest" href="manifest.json">
 
-  <meta name="theme-color" content="#013220">
-
-  <!-- Chart.js for handicap + course analytics -->
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
@@ -40,14 +37,19 @@
       position: relative;
     }
     header {
-      padding: 12px 16px 8px 16px;
+      padding: 10px 16px 6px 16px;
       border-bottom: 1px solid #ddd;
       text-align: center;
     }
     #appLogo {
-      width: 140px;
+      width: 90px;
       display: block;
-      margin: 0 auto 6px auto;
+      margin: 0 auto 4px auto;
+      transition: width 0.25s ease, margin-bottom 0.25s ease;
+    }
+    body.home-view #appLogo {
+      width: 170px;
+      margin-bottom: 8px;
     }
     header .subtitle {
       font-size: 0.8rem;
@@ -259,13 +261,12 @@
       position: relative;
       z-index: 1;
     }
-
   </style>
 </head>
-<body>
+<body class="home-view">
 <div class="app">
   <header>
-    <img id="appLogo" src="Copy%20of%20Rio%20Links%20GC-02.jpg" alt="Rio Links Logo">
+    <img id="appLogo" src="Copy of Rio Links GC-02.jpg" alt="Rio Links Logo">
     <div class="subtitle">Barred Owl · Great Horned Owl</div>
   </header>
 
@@ -279,9 +280,10 @@
       <button class="btn btn-secondary" id="btnHomeAnalytics">Player Analytics</button>
       <button class="btn btn-secondary" id="btnHomeLeaderboard">Leaderboards</button>
       <button class="btn btn-secondary" id="btnHomeCourseAnalytics">Course Analytics</button>
-      <button class="btn btn-secondary" id="btnHomeExport">Export CSV</button>
-      <button class="btn btn-secondary" id="btnExportData">Export Full Backup</button>
-
+      <button class="btn btn-secondary" id="btnHomeExport">Export Scores (CSV)</button>
+      <button class="btn btn-secondary" id="btnExportJSON">Export Backup (JSON)</button>
+      <button class="btn btn-secondary" id="btnImportBackup">Import Backup</button>
+      <input id="backupFileInput" type="file" accept=".json" style="display:none;">
     </section>
 
     <!-- PLAYERS -->
@@ -301,12 +303,11 @@
       <button class="btn-small btn-secondary" id="btnBackFromSelect">&lt; Home</button>
     </section>
 
-    <!-- ROUND -->
+    <!-- ROUND (portrait scoring) -->
     <section id="screen-round" class="hidden">
       <div id="roundHoleLabel"></div>
       <div class="hole-label" id="holeTitle"></div>
       <div class="banner" id="roundScoreBanner"></div>
-
       <div id="scoreButtonsContainer"></div>
 
       <div style="margin-top:10px;">
@@ -320,7 +321,7 @@
       <button class="btn-small btn-secondary" id="btnBackFromRound">&lt; Cancel Round</button>
     </section>
 
-    <!-- SCORECARD (LANDSCAPE) -->
+    <!-- SCORECARD (landscape view) -->
     <section id="screen-scorecard" class="hidden">
       <div class="section-title">Scorecard</div>
       <div id="scorecardTableContainer"></div>
@@ -332,7 +333,7 @@
     <!-- SUMMARY -->
     <section id="screen-summary" class="hidden">
       <div class="section-title">Round Summary</div>
-      <img id="summaryStamp" src="Copy%20of%20Rio%20Links%20GC-02.jpg" alt="Course Logo">
+      <img id="summaryStamp" src="Copy of Rio Links GC-02.jpg" alt="Course Logo">
       <div id="summaryContent"></div>
       <button class="btn" id="btnSummaryDone">Back to Home</button>
     </section>
@@ -344,7 +345,7 @@
       <button class="btn-small btn-secondary" id="btnBackFromHistory">&lt; Home</button>
     </section>
 
-    <!-- ANALYTICS (PLAYER) -->
+    <!-- PLAYER ANALYTICS -->
     <section id="screen-analytics" class="hidden">
       <div class="section-title">Player Analytics</div>
       <ul id="analyticsPlayerList"></ul>
@@ -369,7 +370,6 @@
       <canvas id="courseAnalyticsChart" height="260" style="margin-top:15px;"></canvas>
       <button class="btn-small btn-secondary" id="btnBackFromCourseAnalytics">&lt; Home</button>
     </section>
-
   </main>
 
   <footer>
@@ -378,11 +378,11 @@
 </div>
 
 <script type="module">
-  // ---- Firebase imports ----
+  // Firebase imports
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-  // ---- Firebase config ----
+  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyCX9C7uy5JNklprp3tZeKV3tPGr410ix28",
     authDomain: "rio-links.firebaseapp.com",
@@ -397,7 +397,7 @@
   const db = getFirestore(firebaseApp);
   const FAMILY_DOC_REF = doc(db, "rioLinks", "rio-links-family-1");
 
-  // ---- Core constants ----
+  // Core constants
   const STORAGE_KEY = "rio-links_v2";
   const PAR = 2;
   const HOLES = 20;
@@ -410,14 +410,13 @@
     "Reverse Shoe", "Second Ridge", "True North", "Slope Run", "Home Roost"
   ];
 
-  // ---- Sounds ----
+  // Sounds
   const sounds = {
     click: new Audio("https://assets.mixkit.co/sfx/preview/mixkit-soft-button-click-1126.mp3"),
     nextHole: new Audio("https://assets.mixkit.co/sfx/preview/mixkit-nav-tap-2920.mp3"),
     ace: new Audio("https://sounds-mp3.com/mp3/0012609.mp3"),
     birdie: new Audio("https://assets.mixkit.co/sfx/preview/mixkit-small-bird-chirp-33.mp3")
   };
-
   let audioUnlocked = false;
   function unlockAudio() {
     if (audioUnlocked) return;
@@ -433,18 +432,18 @@
   }
   document.addEventListener("touchstart", unlockAudio, { once: true });
 
-  // ---- State ----
+  // State
   let appData = { players: [], rounds: [] };
   let currentRound = null;
   let editModeRoundId = null;
   let handicapChartInstance = null;
   let courseAnalyticsChart = null;
 
-  // ---- Storage helpers ----
+  // Storage helpers
   function loadLocal() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      try { appData = JSON.parse(raw); } catch(e) { console.error(e); }
+      try { appData = JSON.parse(raw); } catch (e) { console.error(e); }
     }
     if (!appData.players) appData.players = [];
     if (!appData.rounds) appData.rounds = [];
@@ -473,7 +472,6 @@
   }
 
   async function saveToFirebase() {
-    // guard: skip if any incomplete rounds exist
     const incompleteExists = appData.rounds.some(r =>
       Object.values(r.scores || {}).some(arr => arr.includes(null))
     );
@@ -537,9 +535,10 @@
     document.querySelectorAll("section").forEach(s => s.classList.add("hidden"));
     const el = document.getElementById(id);
     if (el) el.classList.remove("hidden");
+    document.body.classList.toggle("home-view", id === "screen-home");
   }
 
-  // ---- Players ----
+  // Players
   function renderPlayers() {
     const ul = document.getElementById("playersList");
     if (!appData.players.length) {
@@ -568,7 +567,7 @@
     `).join("");
   }
 
-  // ---- Round + scorecard ----
+  // Save button state
   function updateSaveButtonState() {
     const btn = document.getElementById("btnFinishRoundBottom");
     if (!currentRound) {
@@ -583,6 +582,7 @@
     btn.style.opacity = allFilled ? "1" : "0.4";
   }
 
+  // Round rendering
   function renderRound() {
     if (!currentRound) return;
     const h = currentRound.currentHole;
@@ -608,7 +608,6 @@
     banner.innerHTML = bannerHtml || "No scores yet.";
 
     container.innerHTML = "";
-
     currentRound.playerIds.forEach(pid => {
       const row = document.createElement("div");
       row.className = "player-row";
@@ -627,7 +626,6 @@
         btn.onclick = () => {
           currentRound.scores[pid][hIndex] = num;
 
-          // play sound slightly delayed so it doesn't get cut off
           setTimeout(() => {
             try {
               if (num === 1) { sounds.ace.currentTime = 0; sounds.ace.play(); }
@@ -640,11 +638,9 @@
           updateSaveButtonState();
           renderScorecard();
 
-          // only auto-advance after ALL players scored this hole
           const allPlayersScored = currentRound.playerIds.every(pid2 =>
             currentRound.scores[pid2][hIndex] !== null
           );
-
           if (allPlayersScored && currentRound.currentHole < HOLES) {
             setTimeout(() => {
               currentRound.currentHole++;
@@ -671,18 +667,13 @@
 
   function renderScorecard() {
     if (!currentRound) return;
-
     const container = document.getElementById("scorecardTableContainer");
     if (!container) return;
     container.innerHTML = "";
 
     const table = document.createElement("table");
-
-    // Header row
     let headerHtml = "<tr><th>Player</th>";
-    for (let i = 1; i <= HOLES; i++) {
-      headerHtml += `<th>${i}</th>`;
-    }
+    for (let i = 1; i <= HOLES; i++) headerHtml += `<th>${i}</th>`;
     headerHtml += "<th>Total</th><th>±</th></tr>";
     table.innerHTML = headerHtml;
 
@@ -697,14 +688,9 @@
         else if (s === 2) cls += " birdie";
         else if (s !== null && s > PAR) cls += " bogey";
 
-        rowHtml += `
-          <td class="${cls}" data-player="${pid}" data-hole="${idx}">
-            ${s ?? "-"}
-          </td>
-        `;
+        rowHtml += `<td class="${cls}" data-player="${pid}" data-hole="${idx}">${s ?? "-"}</td>`;
       });
 
-      // partial totals: only completed holes
       const playedScores = scores.filter(v => v !== null);
       const playedCount = playedScores.length;
       let displayTotal = "-";
@@ -716,7 +702,6 @@
         displayTotal = partialTotal;
         displayDiff = fmt(Number(partialDiff.toFixed(2)));
       }
-
       rowHtml += `<td>${displayTotal}</td><td>${displayDiff}</td></tr>`;
       table.innerHTML += rowHtml;
     });
@@ -744,7 +729,6 @@
 
   async function finalizeRound() {
     if (!currentRound) return;
-
     const allFilled = currentRound.playerIds.every(pid =>
       currentRound.scores[pid].every(s => s !== null)
     );
@@ -760,7 +744,6 @@
       appData.rounds.push(currentRound);
     }
 
-    // Save locally + to Firebase ONLY when round is complete
     saveLocal();
     await saveToFirebase();
 
@@ -805,7 +788,7 @@
     div.innerHTML = html;
   }
 
-  // ---- History ----
+  // History
   function renderHistory() {
     const div = document.getElementById("historyContent");
     if (!appData.rounds.length) {
@@ -850,7 +833,7 @@
     show("screen-round");
   };
 
-  // ---- Analytics + graph ----
+  // Analytics
   function computeAnalytics(pid) {
     const rounds = getPlayerRounds(pid);
     if (!rounds.length) return null;
@@ -930,7 +913,7 @@
     });
   };
 
-  // ---- Leaderboards ----
+  // Leaderboards
   function generateLeaderboards() {
     const rounds = appData.rounds;
     const results = [];
@@ -965,7 +948,6 @@
 
   function renderLeaderboards() {
     const data = generateLeaderboards();
-
     const overallDiv = document.getElementById("leaderboardOverall");
     const barredDiv  = document.getElementById("leaderboardBarred");
     const hornedDiv  = document.getElementById("leaderboardHorned");
@@ -995,7 +977,7 @@
         : "<p>No rounds yet.</p>");
   }
 
-  // ---- Course Analytics ----
+  // Course Analytics
   function renderCourseAnalytics() {
     const container = document.getElementById("courseAnalyticsContainer");
     const canvas = document.getElementById("courseAnalyticsChart");
@@ -1060,68 +1042,13 @@
       options: {
         plugins: { legend: { display: false }},
         scales: {
-          y: {
-            title: { display: true, text: "Avg vs Par (Strokes)" }
-          }
+          y: { title: { display: true, text: "Avg vs Par (Strokes)" } }
         }
       }
     });
   }
 
-  // ---- Heatmap ----
-  function renderHeatmap() {
-    const container = document.getElementById("heatmapContainer");
-    container.innerHTML = "";
-
-    if (!appData.rounds.length) {
-      container.innerHTML = "<p>No data yet.</p>";
-      return;
-    }
-
-    const holeStats = Array(HOLES).fill(null).map((_, i) => ({
-      hole: i + 1,
-      name: HOLE_NAMES[i],
-      scores: []
-    }));
-
-    appData.rounds.forEach(r => {
-      Object.values(r.scores).forEach(arr => {
-        arr.forEach((score, i) => {
-          if (score !== null) holeStats[i].scores.push(score);
-        });
-      });
-    });
-
-    const heatData = holeStats.map(h => {
-      if (!h.scores.length) return { ...h, avg: null, diff: null };
-      const avg = h.scores.reduce((a,b)=>a+b,0) / h.scores.length;
-      return { ...h, avg, diff: avg - PAR };
-    });
-
-    heatData.sort((a,b)=>(b.diff ?? -999) - (a.diff ?? -999)); // hardest first
-
-    heatData.forEach(h => {
-      const tile = document.createElement("div");
-      tile.className = "heat-tile";
-
-      let bg = "#d4f8d4"; // green (easy)
-      if (h.diff > 0.25) bg = "#ffd6d6";       // red (hard)
-      else if (h.diff > -0.25) bg = "#fff9c4"; // yellow (neutral)
-
-      tile.style.background = bg;
-
-      tile.innerHTML = `
-        <strong>${h.name}</strong>
-        <div style="font-size:1.1rem;margin-top:4px;">
-          ${h.diff !== null ? fmt(Number(h.diff.toFixed(2))) : "-"}
-        </div>
-      `;
-
-      container.appendChild(tile);
-    });
-  }
-
-  // ---- Export ----
+  // Export scores CSV (per-hole history)
   function exportCSV() {
     if (!appData.rounds.length) {
       alert("No rounds to export yet.");
@@ -1140,12 +1067,48 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "rio-links-scores.csv";
+    a.download = `rio-links-scores-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
 
-  // ---- Scorecard click editing (live sync) ----
+  // Export full JSON backup
+  function exportBackupJSON() {
+    const json = JSON.stringify(appData, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `rio-links-backup-${new Date().toISOString().split("T")[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Import JSON backup
+  function importBackupJSON(file) {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!data.players || !data.rounds) {
+          alert("Invalid backup file.");
+          return;
+        }
+        appData = data;
+        saveLocal();
+        await saveToFirebase();
+        alert("Backup restored successfully!");
+        renderPlayers();
+        show("screen-home");
+      } catch (e) {
+        console.error(e);
+        alert("Error reading backup file.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // Scorecard cell editing
   document.addEventListener("click", (e) => {
     if (!currentRound) return;
     if (!e.target.classList.contains("scorecell")) return;
@@ -1171,7 +1134,7 @@
     updateSaveButtonState();
   });
 
-  // ---- Swipe navigation ----
+  // Swipe navigation
   let touchStartX = 0;
   document.addEventListener("touchstart", e => {
     if (!e.changedTouches || !e.changedTouches.length) return;
@@ -1193,7 +1156,7 @@
     }
   });
 
-  // ---- Button wiring ----
+  // Button wiring
   document.getElementById("btnHomeStart").onclick = () => {
     renderPlayerSelection();
     show("screen-select-players");
@@ -1209,8 +1172,7 @@
   document.getElementById("btnHomeAnalytics").onclick = () => {
     renderAnalyticsPlayerList();
     document.getElementById("analyticsResults").innerHTML = "";
-    const canvas = document.getElementById("handicapChart");
-    canvas.style.display = "none";
+    document.getElementById("handicapChart").style.display = "none";
     show("screen-analytics");
   };
   document.getElementById("btnHomeLeaderboard").onclick = () => {
@@ -1221,35 +1183,16 @@
     renderCourseAnalytics();
     show("screen-course-analytics");
   };
-
   document.getElementById("btnHomeExport").onclick = exportCSV;
-document.getElementById("btnExportData").onclick = async () => {
-  try {
-    const snap = await getDoc(FAMILY_DOC_REF);
-    
-    if (!snap.exists()) {
-      alert("No Firebase data found.");
-      return;
-    }
+  document.getElementById("btnExportJSON").onclick = exportBackupJSON;
 
-    const data = snap.data();
-    const json = JSON.stringify(data, null, 2);
-
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `rio-links-backup-${new Date().toISOString().split("T")[0]}.json`;
-    a.click();
-
-    URL.revokeObjectURL(url);
-  } catch (err) {
-    console.error(err);
-    alert("Error exporting. Check console.");
-  }
-};
-
+  document.getElementById("btnImportBackup").onclick = () => {
+    document.getElementById("backupFileInput").click();
+  };
+  document.getElementById("backupFileInput").onchange = e => {
+    const file = e.target.files[0];
+    if (file) importBackupJSON(file);
+  };
 
   document.getElementById("btnAddPlayer").onclick = async () => {
     const input = document.getElementById("playerNameInput");
@@ -1314,13 +1257,13 @@ document.getElementById("btnExportData").onclick = async () => {
   window.addEventListener("orientationchange", handleOrientation);
   window.addEventListener("resize", handleOrientation);
 
-  // Register service worker for PWA
+  // Register service worker
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./service-worker.js")
       .catch(err => console.log("SW registration failed:", err));
   }
 
-  // ---- Init ----
+  // Init
   loadLocal();
   renderPlayers();
   show("screen-home");
