@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rio Links Golf Course</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- iOS: make it feel like an app -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Rio Links">
+  <style>
+    :root {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      font-size: 16px;
+      color-scheme: light;
+    }
+    body {
+      margin: 0;
+      background: #f5f5f7;
+      color: #111;
+    }
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e0e0e0;
+      text-align: center;
+    }
+    header h1 {
+      font-size: 1.1rem;
+      margin: 0;
+      font-weight: 600;
+    }
+    header .subtitle {
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 2px;
+    }
+    main {
+      flex: 1;
+      padding: 16px;
+    }
+    .hidden {
+      display: none;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px 14px;
+      margin: 6px 0;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 500;
+      background: #007aff;
+      color: #fff;
+      text-align: center;
+    }
+    .btn-secondary {
+      background: #e5e5ea;
+      color: #111;
+    }
+    .btn-small {
+      display: inline-block;
+      width: auto;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      margin-right: 6px;
+      margin-top: 6px;
+    }
+    .btn-outline {
+      background: #fff;
+      border: 1px solid #ccc;
+      color: #007aff;
+    }
+    .section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0 0 10px;
+    }
+    .field-row {
+      margin: 8px 0;
+    }
+    label {
+      display: block;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 0.95rem;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    li {
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .pill {
+      display: inline-block;
+      padding: 3px 6px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: #f2f2f7;
+    }
+    .score-banner {
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #f2f2f7;
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+    }
+    .score-line {
+      display: flex;
+      justify-content: space-between;
+      margin: 2px 0;
+    }
+    .hole-label {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .player-row {
+      margin: 10px 0;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #fafafa;
+    }
+    .player-name {
+      font-weight: 500;
+      margin-bottom: 4px;
+      font-size: 0.95rem;
+    }
+    .score-buttons button {
+      margin: 3px 4px 0 0;
+    }
+    .score-buttons button.selected {
+      background: #34c759;
+      color: #fff;
+    }
+    .top-nav {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 0.85rem;
+      color: #666;
+    }
+    .top-nav button {
+      border: none;
+      background: none;
+      padding: 4px 0;
+      color: #007aff;
+      font-size: 0.85rem;
+    }
+    .note {
+      font-size: 0.8rem;
+      color: #777;
+      margin-top: 6px;
+    }
+    .history-entry {
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .history-entry .date {
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 3px;
+    }
+    .history-entry .player-line {
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+    }
+    footer {
+      padding: 8px 12px;
+      border-top: 1px solid #e0e0e0;
+      font-size: 0.75rem;
+      color: #aaa;
+      text-align: center;
+    }
+    .tagline {
+      font-size: 0.75rem;
+      margin-top: 4px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>⛳ Rio Links Golf Course</h1>
+    <div class="subtitle">Backyard Putting Tracker</div>
+  </header>
+
+  <main>
+    <!-- HOME SCREEN -->
+    <section id="screen-home">
+      <div class="section-title">Home</div>
+      <button class="btn" id="btnHomeStart">Start Round</button>
+      <button class="btn btn-secondary" id="btnHomePlayers">Players</button>
+      <button class="btn btn-secondary" id="btnHomeHistory">History</button>
+      <button class="btn btn-secondary" id="btnHomeExport">Export Scores (CSV)</button>
+      <p class="note">
+        Par is fixed at 40 (20 holes, par 2 each). All data saves on this device only.
+      </p>
+    </section>
+
+    <!-- PLAYERS SCREEN -->
+    <section id="screen-players" class="hidden">
+      <div class="top-nav">
+        <button id="btnBackFromPlayers">&lt; Home</button>
+        <span>Players</span>
+        <span></span>
+      </div>
+      <div class="section-title">Player Profiles</div>
+      <div class="field-row">
+        <label for="playerNameInput">Add Player</label>
+        <input type="text" id="playerNameInput" placeholder="Name (e.g., Michael, Luke)">
+      </div>
+      <button class="btn" id="btnAddPlayer">Save Player</button>
+
+      <h3 style="margin-top:18px; font-size:0.95rem;">Existing Players</h3>
+      <ul id="playersList"></ul>
+      <p class="note">
+        Handicaps are calculated from each player's last 10 rounds (score vs par).
+      </p>
+    </section>
+
+    <!-- PLAYER SELECTION SCREEN -->
+    <section id="screen-select-players" class="hidden">
+      <div class="top-nav">
+        <button id="btnBackFromSelect">&lt; Home</button>
+        <span>New Round</span>
+        <span></span>
+      </div>
+      <div class="section-title">Choose Players</div>
+      <ul id="playerSelectList"></ul>
+      <button class="btn" id="btnStartRoundFromSelection">Start Round</button>
+      <p class="note">
+        Select one or more players. Course is 20 holes, par 2 each.
+      </p>
+    </section>
+
+    <!-- ROUND SCORING SCREEN -->
+    <section id="screen-round" class="hidden">
+      <div class="top-nav">
+        <button id="btnBackFromRound">&lt; Cancel</button>
+        <span id="roundHoleLabel">Hole</span>
+        <button id="btnFinishRoundTop">Finish</button>
+      </div>
+
+      <div class="score-banner" id="roundScoreBanner"></div>
+
+      <div class="hole-label" id="holeTitle"></div>
+
+      <div id="scoreButtonsContainer"></div>
+
+      <div style="margin-top:12px;">
+        <button class="btn btn-secondary btn-small" id="btnPrevHole">&lt; Prev Hole</button>
+        <button class="btn btn-secondary btn-small" id="btnNextHole">Next Hole &gt;</button>
+        <button class="btn btn-small btn-outline" id="btnFinishRoundBottom">Finish Round</button>
+      </div>
+      <p class="note">
+        Tap a score for each player on each hole. Par per hole is 2.
+      </p>
+    </section>
+
+    <!-- ROUND SUMMARY SCREEN -->
+    <section id="screen-summary" class="hidden">
+      <div class="top-nav">
+        <button id="btnBackFromSummary">&lt; Home</button>
+        <span>Round Summary</span>
+        <span></span>
+      </div>
+      <div id="summaryContent"></div>
+      <button class="btn" id="btnSummaryDone">Done</button>
+    </section>
+
+    <!-- HISTORY SCREEN -->
+    <section id="screen-history" class="hidden">
+      <div class="top-nav">
+        <button id="btnBackFromHistory">&lt; Home</button>
+        <span>History</span>
+        <span></span>
+      </div>
+      <div class="section-title">Recent Rounds</div>
+      <div id="historyContent"></div>
+      <p class="note">
+        Handicaps are based on last 10 rounds per player.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    Rio Links • 20-Hole Backyard Course
+    <div class="tagline">Scores & handicaps stay on this device</div>
+  </footer>
+</div>
+
+<script>
+  const PAR_PER_HOLE = 2;
+  const NUM_HOLES = 20;
+  const PAR_TOTAL = PAR_PER_HOLE * NUM_HOLES;
+  const STORAGE_KEY = 'rioLinksData_v1';
+
+  let appData = {
+    players: [],   // { id, name }
+    rounds: []     // { id, date, scores: {playerId:[...20]} }
+  };
+
+  let currentRound = null; // { id, date, playerIds:[], scores, currentHole }
+
+  // ---- Storage helpers ----
+  function loadData() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        appData = JSON.parse(raw);
+      }
+    } catch (e) {
+      console.error('Error loading data', e);
+    }
+    if (!appData.players) appData.players = [];
+    if (!appData.rounds) appData.rounds = [];
+  }
+
+  function saveData() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    } catch (e) {
+      console.error('Error saving data', e);
+    }
+  }
+
+  // ---- Screen management ----
+  function showScreen(id) {
+    const screens = ['screen-home','screen-players','screen-select-players','screen-round','screen-summary','screen-history'];
+    screens.forEach(s => {
+      document.getElementById(s).classList.toggle('hidden', s !== id);
+    });
+  }
+
+  // ---- Players ----
+  function addPlayer(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const id = 'p_' + Date.now() + '_' + Math.random().toString(16).slice(2);
+    appData.players.push({ id, name: trimmed });
+    saveData();
+    renderPlayersList();
+  }
+
+  function getPlayerById(id) {
+    return appData.players.find(p => p.id === id);
+  }
+
+  function computeHandicap(playerId) {
+    // Average (score - par) over last 10 rounds where this player has scores
+    const relevantRounds = appData.rounds
+      .filter(r => r.scores && r.scores[playerId])
+      .sort((a,b) => new Date(b.date) - new Date(a.date)) // newest first
+      .slice(0, 10);
+
+    if (!relevantRounds.length) return 0;
+
+    let totalDiff = 0;
+    relevantRounds.forEach(r => {
+      const strokes = r.scores[playerId].reduce((a,b) => a + b, 0);
+      totalDiff += (strokes - PAR_TOTAL);
+    });
+    const h = totalDiff / relevantRounds.length;
+    return Math.round(h * 10) / 10; // 1 decimal
+  }
+
+  function renderPlayersList() {
+    const ul = document.getElementById('playersList');
+    ul.innerHTML = '';
+    if (!appData.players.length) {
+      ul.innerHTML = '<li><span>No players yet. Add one above.</span></li>';
+      return;
+    }
+    appData.players.forEach(p => {
+      const li = document.createElement('li');
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = p.name;
+
+      const hc = computeHandicap(p.id);
+      const pill = document.createElement('span');
+      pill.className = 'pill';
+      pill.textContent = 'Hcp: ' + (hc > 0 ? '+' + hc : hc);
+
+      li.appendChild(nameSpan);
+      li.appendChild(pill);
+      ul.appendChild(li);
+    });
+  }
+
+  function renderPlayerSelectList() {
+    const ul = document.getElementById('playerSelectList');
+    ul.innerHTML = '';
+
+    if (!appData.players.length) {
+      ul.innerHTML = '<li><span>No players yet. Go back and add one.</span></li>';
+      return;
+    }
+
+    appData.players.forEach(p => {
+      const li = document.createElement('li');
+      const label = document.createElement('label');
+      label.style.display = 'flex';
+      label.style.justifyContent = 'space-between';
+      label.style.alignItems = 'center';
+      const span = document.createElement('span');
+      span.textContent = p.name;
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.value = p.id;
+      input.style.marginLeft = '8px';
+
+      label.appendChild(span);
+      label.appendChild(input);
+      li.appendChild(label);
+      ul.appendChild(li);
+    });
+  }
+
+  function getSelectedPlayerIds() {
+    const checkboxes = document.querySelectorAll('#playerSelectList input[type="checkbox"]');
+    const ids = [];
+    checkboxes.forEach(cb => {
+      if (cb.checked) ids.push(cb.value);
+    });
+    return ids;
+  }
+
+  // ---- Rounds ----
+  function startNewRound(playerIds) {
+    if (!playerIds || !playerIds.length) return;
+    const now = new Date();
+    currentRound = {
+      id: 'r_' + now.getTime(),
+      date: now.toISOString(),
+      playerIds: playerIds.slice(),
+      currentHole: 1,
+      scores: {}
+    };
+    playerIds.forEach(pid => {
+      currentRound.scores[pid] = new Array(NUM_HOLES).fill(null);
+    });
+    renderRoundScreen();
+    showScreen('screen-round');
+  }
+
+  function setScore(playerId, holeIdx, strokes) {
+    if (!currentRound || !currentRound.scores[playerId]) return;
+    currentRound.scores[playerId][holeIdx - 1] = strokes;
+    renderRoundScreen(); // refresh selection + banner
+  }
+
+  function moveHole(delta) {
+    if (!currentRound) return;
+    let h = currentRound.currentHole + delta;
+    if (h < 1) h = 1;
+    if (h > NUM_HOLES) h = NUM_HOLES;
+    currentRound.currentHole = h;
+    renderRoundScreen();
+  }
+
+  function allHolesScored() {
+    if (!currentRound) return false;
+    return currentRound.playerIds.every(pid =>
+      currentRound.scores[pid].every(s => typeof s === 'number')
+    );
+  }
+
+  function finishCurrentRound() {
+    if (!currentRound) return;
+    // Optional: allow incomplete — but we’ll just save as-is.
+    appData.rounds.push({
+      id: currentRound.id,
+      date: currentRound.date,
+      scores: currentRound.scores
+    });
+    saveData();
+    renderSummaryScreen(currentRound);
+    currentRound = null;
+    showScreen('screen-summary');
+  }
+
+  function formatScoreVsPar(diff) {
+    if (diff > 0) return '+' + diff;
+    if (diff === 0) return 'E';
+    return diff.toString();
+  }
+
+  // ---- Render Round Screen ----
+  function renderRoundScreen() {
+    if (!currentRound) return;
+    const hole = currentRound.currentHole;
+    const holeTitle = document.getElementById('holeTitle');
+    holeTitle.textContent = 'Hole ' + hole + ' (Par ' + PAR_PER_HOLE + ')';
+
+    const roundHoleLabel = document.getElementById('roundHoleLabel');
+    roundHoleLabel.textContent = 'Hole ' + hole + '/' + NUM_HOLES;
+
+    const container = document.getElementById('scoreButtonsContainer');
+    container.innerHTML = '';
+
+    // Banner with running totals
+    const banner = document.getElementById('roundScoreBanner');
+    let bannerHtml = '';
+    currentRound.playerIds.forEach(pid => {
+      const player = getPlayerById(pid);
+      const scores = currentRound.scores[pid];
+      const playedScores = scores.filter(s => typeof s === 'number');
+      const holesPlayed = playedScores.length;
+      const strokesSoFar = playedScores.reduce((a,b) => a + b, 0);
+      const parSoFar = holesPlayed * PAR_PER_HOLE;
+      const diff = strokesSoFar - parSoFar;
+      bannerHtml += `
+        <div class="score-line">
+          <span>${player ? player.name : 'Player'}</span>
+          <span>${strokesSoFar || 0} (${formatScoreVsPar(diff)})</span>
+        </div>
+      `;
+    });
+    banner.innerHTML = bannerHtml || 'No scores yet.';
+
+    // Player rows with score buttons
+    currentRound.playerIds.forEach(pid => {
+      const player = getPlayerById(pid);
+      const row = document.createElement('div');
+      row.className = 'player-row';
+
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'player-name';
+      nameDiv.textContent = player ? player.name : 'Player';
+
+      const buttonsDiv = document.createElement('div');
+      buttonsDiv.className = 'score-buttons';
+
+      const existingScore = currentRound.scores[pid][hole - 1];
+
+      [1,2,3,4,5].forEach(strokes => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-secondary btn-small';
+        btn.textContent = strokes;
+        btn.addEventListener('click', () => setScore(pid, hole, strokes));
+        if (existingScore === strokes) {
+          btn.classList.add('selected');
+        }
+        buttonsDiv.appendChild(btn);
+      });
+
+      row.appendChild(nameDiv);
+      row.appendChild(buttonsDiv);
+      container.appendChild(row);
+    });
+  }
+
+  // ---- Summary Screen ----
+  function renderSummaryScreen(roundObj) {
+    const div = document.getElementById('summaryContent');
+    const date = new Date(roundObj.date);
+    let html = `<div class="section-title">Rio Links - Round Complete</div>`;
+    html += `<div class="note">${date.toLocaleString()}</div>`;
+    html += `<div style="margin-top:10px;">`;
+
+    let bestNet = null;
+    let bestPlayers = [];
+
+    roundObj.playerIds.forEach(pid => {
+      const player = getPlayerById(pid);
+      const scores = roundObj.scores[pid];
+      const totalStrokes = scores.reduce((a,b) => a + (typeof b === 'number' ? b : 0), 0);
+      const scoreDiff = totalStrokes - PAR_TOTAL;
+      const preHcpString = `${totalStrokes} (${formatScoreVsPar(scoreDiff)})`;
+
+      const hcp = computeHandicap(pid); // based on previous rounds
+      const netDiff = scoreDiff - hcp;
+      const netString = `${formatScoreVsPar(Math.round(netDiff * 10) / 10)}`;
+
+      if (bestNet === null || netDiff < bestNet) {
+        bestNet = netDiff;
+        bestPlayers = [player ? player.name : 'Player'];
+      } else if (Math.abs(netDiff - bestNet) < 0.0001) {
+        bestPlayers.push(player ? player.name : 'Player');
+      }
+
+      html += `
+        <div class="history-entry">
+          <div class="player-line">
+            <span>${player ? player.name : 'Player'}</span>
+            <span>${preHcpString}</span>
+          </div>
+          <div class="player-line" style="font-size:0.85rem; color:#555;">
+            <span>Handicap: ${hcp > 0 ? '+' + hcp : hcp}</span>
+            <span>Net vs Par: ${netString}</span>
+          </div>
+        </div>
+      `;
+    });
+
+    if (bestPlayers.length) {
+      html += `<p style="margin-top:8px;"><strong>🏆 Winner (Net):</strong> ${bestPlayers.join(', ')}</p>`;
+    }
+
+    html += `</div>`;
+    div.innerHTML = html;
+  }
+
+  // ---- History Screen ----
+  function renderHistoryScreen() {
+    const div = document.getElementById('historyContent');
+    div.innerHTML = '';
+
+    if (!appData.rounds.length) {
+      div.innerHTML = '<p class="note">No rounds yet.</p>';
+      return;
+    }
+
+    const rounds = appData.rounds
+      .slice()
+      .sort((a,b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 30); // last 30 rounds
+
+    rounds.forEach(r => {
+      const date = new Date(r.date);
+      const entry = document.createElement('div');
+      entry.className = 'history-entry';
+
+      const dateDiv = document.createElement('div');
+      dateDiv.className = 'date';
+      dateDiv.textContent = date.toLocaleString();
+      entry.appendChild(dateDiv);
+
+      // For each player who had scores in this round
+      Object.keys(r.scores).forEach(pid => {
+        const player = getPlayerById(pid);
+        const scores = r.scores[pid];
+        const totalStrokes = scores.reduce((a,b) => a + (typeof b === 'number' ? b : 0), 0);
+        const diff = totalStrokes - PAR_TOTAL;
+        const line = document.createElement('div');
+        line.className = 'player-line';
+        line.innerHTML = `
+          <span>${player ? player.name : 'Player'}</span>
+          <span>${totalStrokes} (${formatScoreVsPar(diff)})</span>
+        `;
+        entry.appendChild(line);
+      });
+
+      div.appendChild(entry);
+    });
+  }
+
+  // ---- Export CSV ----
+  function exportCSV() {
+    if (!appData.rounds.length) {
+      alert('No rounds to export yet.');
+      return;
+    }
+
+    let rows = [];
+    rows.push(['Date','Player','Hole','Score','Par','RoundTotal','ScoreVsPar']);
+
+    appData.rounds.forEach(r => {
+      const date = new Date(r.date).toISOString();
+      Object.keys(r.scores).forEach(pid => {
+        const player = getPlayerById(pid);
+        const scores = r.scores[pid];
+        const totalStrokes = scores.reduce((a,b) => a + (typeof b === 'number' ? b : 0), 0);
+        const diff = totalStrokes - PAR_TOTAL;
+
+        scores.forEach((s, idx) => {
+          const holeNum = idx + 1;
+          const par = PAR_PER_HOLE;
+          rows.push([
+            date,
+            player ? player.name : 'Player',
+            holeNum,
+            s ?? '',
+            par,
+            totalStrokes,
+            diff
+          ]);
+        });
+      });
+    });
+
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'rio-links-scores.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ---- Wire up events ----
+  function init() {
+    loadData();
+
+    // Home buttons
+    document.getElementById('btnHomeStart').addEventListener('click', () => {
+      renderPlayerSelectList();
+      showScreen('screen-select-players');
+    });
+    document.getElementById('btnHomePlayers').addEventListener('click', () => {
+      renderPlayersList();
+      showScreen('screen-players');
+    });
+    document.getElementById('btnHomeHistory').addEventListener('click', () => {
+      renderHistoryScreen();
+      showScreen('screen-history');
+    });
+    document.getElementById('btnHomeExport').addEventListener('click', exportCSV);
+
+    // Players screen
+    document.getElementById('btnBackFromPlayers').addEventListener('click', () => {
+      showScreen('screen-home');
+    });
+    document.getElementById('btnAddPlayer').addEventListener('click', () => {
+      const input = document.getElementById('playerNameInput');
+      addPlayer(input.value);
+      input.value = '';
+      input.focus();
+    });
+
+    // Player select screen
+    document.getElementById('btnBackFromSelect').addEventListener('click', () => {
+      showScreen('screen-home');
+    });
+    document.getElementById('btnStartRoundFromSelection').addEventListener('click', () => {
+      const ids = getSelectedPlayerIds();
+      if (!ids.length) {
+        alert('Select at least one player.');
+        return;
+      }
+      startNewRound(ids);
+    });
+
+    // Round screen
+    document.getElementById('btnPrevHole').addEventListener('click', () => moveHole(-1));
+    document.getElementById('btnNextHole').addEventListener('click', () => moveHole(1));
+    document.getElementById('btnFinishRoundTop').addEventListener('click', finishCurrentRound);
+    document.getElementById('btnFinishRoundBottom').addEventListener('click', finishCurrentRound);
+    document.getElementById('btnBackFromRound').addEventListener('click', () => {
+      if (confirm('Cancel this round? Scores will not be saved.')) {
+        currentRound = null;
+        showScreen('screen-home');
+      }
+    });
+
+    // Summary screen
+    document.getElementById('btnBackFromSummary').addEventListener('click', () => {
+      showScreen('screen-home');
+    });
+    document.getElementById('btnSummaryDone').addEventListener('click', () => {
+      showScreen('screen-home');
+    });
+
+    // History screen
+    document.getElementById('btnBackFromHistory').addEventListener('click', () => {
+      showScreen('screen-home');
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
