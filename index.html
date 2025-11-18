@@ -260,19 +260,6 @@
       z-index: 1;
     }
 
-    /* Heatmap tiles */
-    .heat-tile {
-      width: 100px;
-      height: 90px;
-      border-radius: 10px;
-      padding: 6px;
-      text-align: center;
-      font-size: 0.8rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      border: 1px solid #ddd;
-    }
   </style>
 </head>
 <body>
@@ -292,7 +279,6 @@
       <button class="btn btn-secondary" id="btnHomeAnalytics">Player Analytics</button>
       <button class="btn btn-secondary" id="btnHomeLeaderboard">Leaderboards</button>
       <button class="btn btn-secondary" id="btnHomeCourseAnalytics">Course Analytics</button>
-      <button class="btn btn-secondary" id="btnHomeHeatmap">Heat Map</button>
       <button class="btn btn-secondary" id="btnHomeExport">Export CSV</button>
     </section>
 
@@ -382,16 +368,6 @@
       <button class="btn-small btn-secondary" id="btnBackFromCourseAnalytics">&lt; Home</button>
     </section>
 
-    <!-- HEATMAP -->
-    <section id="screen-heatmap" class="hidden">
-      <div class="section-title">Course Heat Map</div>
-      <div id="heatmapContainer" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-      <div style="margin-top:12px;font-size:0.9rem;">
-        <strong>Legend:</strong>
-        🟩 Easy &nbsp;|&nbsp; 🟨 Neutral &nbsp;|&nbsp; 🟥 Hard
-      </div>
-      <button class="btn-small btn-secondary" id="btnBackFromHeatmap">&lt; Home</button>
-    </section>
   </main>
 
   <footer>
@@ -1243,10 +1219,7 @@
     renderCourseAnalytics();
     show("screen-course-analytics");
   };
-  document.getElementById("btnHomeHeatmap").onclick = () => {
-    renderHeatmap();
-    show("screen-heatmap");
-  };
+
   document.getElementById("btnHomeExport").onclick = exportCSV;
 
   document.getElementById("btnAddPlayer").onclick = async () => {
@@ -1266,7 +1239,6 @@
   document.getElementById("btnBackFromAnalytics").onclick = () => show("screen-home");
   document.getElementById("btnBackFromLeaderboards").onclick = () => show("screen-home");
   document.getElementById("btnBackFromCourseAnalytics").onclick = () => show("screen-home");
-  document.getElementById("btnBackFromHeatmap").onclick = () => show("screen-home");
 
   document.getElementById("btnStartRoundFromSelection").onclick = () => {
     const ids = [...document.querySelectorAll("#playerSelectList input:checked")].map(cb => cb.value);
