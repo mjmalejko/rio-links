@@ -340,4 +340,597 @@
     if (raw) {
       try { appData = JSON.parse(raw); } catch(e) { console.error(e); }
     }
-    i
+    if (!appData.players) appData.players = [];
+    if (!appData.rounds) appData.rounds = [];
+  }
+
+  function saveLocal() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+  }
+
+  async function loadFromFirebase() {
+    try {
+      const snap = await getDoc(FAMILY_DOC_REF);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.players && data.rounds) {
+          appData = data;
+          saveLocal();
+          renderPlayers();
+        }
+      } else {
+        await setDoc(FAMILY_DOC_REF, appData);
+      }
+    } catch (e) {
+      console.warn("Firebase load error", e);
+    }
+  }
+
+  async function saveToFirebase() {
+    try {
+      await setDoc(FAMILY_DOC_REF, appData);
+    } catch (e) {
+      console.warn("Firebase save error", e);
+    }
+  }
+
+  function saveAll() {
+    saveLocal();
+    saveToFirebase();
+  }
+
+  // ---- Helpers ----
+  const fmt = n => n > 0 ? `+${n}` : n === 0 ? "E" : n;
+
+  function getPlayer(id) {
+    return appData.players.find(p => p.id === id);
+  }
+
+  function getPlayerRounds(id) {
+    return appData.rounds
+      .filter(r => r.scores && r.scores[id])
+      .sort((a,b) => new Date(a.date) - new Date(b.date));
+  }
+
+  function computeHandicap(id) {
+    const rounds = getPlayerRounds(id).slice(-10);
+    if (!rounds.length) return 0;
+    const diffs = rounds.map(r => {
+      const total = r.scores[id].reduce((a,b)=>a+b,0);
+      return total - COURSE_PAR;
+    });
+    const avg = diffs.reduce((a,b)=>a+b,0) / diffs.length;
+    return Math.round(avg * 10) / 10;
+  }
+
+  function getHandicapTimeline(id) {
+    const rounds = getPlayerRounds(id);
+    const timeline = [];
+    for (let i = 0; i < rounds.length; i++) {
+      const slice = rounds.slice(Math.max(0, i-9), i+1);
+      const diffs = slice.map(r => {
+        const total = r.scores[id].reduce((a,b)=>a+b,0);
+        return total - COURSE_PAR;
+      });
+      const avg = diffs.reduce((a,b)=>a+b,0) / diffs.length;
+      const handicap = Math.round(avg * 10) / 10;
+      timeline.push({ date: new Date(rounds[i].date), handicap });
+    }
+    return timeline;
+  }
+
+  // ---- Screen management ----
+  function show(id) {
+    document.querySelectorAll("section").forEach(s => s.classList.add("hidden"));
+    document.getElementById(id).classList.remove("hidden");
+  }
+
+  // ---- Players ----
+  function renderPlayers() {
+    const ul = document.getElementById("playersList");
+    if (!appData.players.length) {
+      ul.innerHTML = "<li>No players yet.</li>";
+      return;
+    }
+    ul.innerHTML = appData.players.map(p => {
+      const hc = computeHandicap(p.id);
+      return `<li>${p.name}<span class="pill">hcp ${hc>0?`+${hc}`:hc}</span></li>`;
+    }).join("");
+  }
+
+  function renderPlayerSelection() {
+    const ul = document.getElementById("playerSelectList");
+    if (!appData.players.length) {
+      ul.innerHTML = "<li>No players yet.</li>";
+      return;
+    }
+    ul.innerHTML = appData.players.map(p => `
+      <li>
+        <label style="display:flex;justify-content:space-between;align-items:center;">
+          <span>${p.name}</span>
+          <input type="checkbox" value="${p.id}">
+        </label>
+      </li>
+    `).join("");
+  }
+
+  // ---- Round logic ----
+  function startRound(playerIds) {
+    currentRound = {
+      id: "r_" + Date.now(),
+      date: new Date().toISOString(),
+      playerIds: playerIds.slice(),
+      currentHole: 1,
+      scores: Object.fromEntries(playerIds.map(id => [id, Array(HOLES).fill(null)]))
+    };
+    editModeRoundId = null;
+    renderRound();
+    show("screen-round");
+  }
+
+  function updateSaveButtonState() {
+    const btn = document.getElementById("btnFinishRoundBottom");
+    if (!currentRound) {
+      btn.disabled = true;
+      btn.style.opacity = "0.4";
+      return;
+    }
+    const allFilled = currentRound.playerIds.every(pid =>
+      currentRound.scores[pid].every(s => s !== null)
+    );
+    btn.disabled = !allFilled;
+    btn.style.opacity = allFilled ? "1" : "0.4";
+  }
+
+  function renderRound() {
+    if (!currentRound) return;
+    const h = currentRound.currentHole;
+    const roundHoleLabel = document.getElementById("roundHoleLabel");
+    const holeTitle = document.getElementById("holeTitle");
+    const banner = document.getElementById("roundScoreBanner");
+    const container = document.getElementById("scoreButtonsContainer");
+
+    roundHoleLabel.textContent = `Hole ${h}/${HOLES}`;
+    const courseName = h <= 10 ? "Barred Owl" : "Great Horned Owl";
+    holeTitle.textContent = `${courseName} · ${HOLE_NAMES[h-1]} (Par ${PAR})`;
+
+    let bannerHtml = "";
+    currentRound.playerIds.forEach(pid => {
+      const scores = currentRound.scores[pid];
+      const played = scores.filter(v => v !== null);
+      const total = played.reduce((a,b)=>a+b,0);
+      const diff = total - played.length * PAR;
+      bannerHtml += `<div>${getPlayer(pid).name}: ${total || 0} (${fmt(diff || 0)})</div>`;
+    });
+    banner.innerHTML = bannerHtml || "No scores yet.";
+
+    container.innerHTML = "";
+    const hIndex = h - 1;
+
+    currentRound.playerIds.forEach(pid => {
+      const row = document.createElement("div");
+      row.className = "player-row";
+      const label = document.createElement("div");
+      label.textContent = getPlayer(pid).name;
+      row.appendChild(label);
+
+      const btnRow = document.createElement("div");
+      btnRow.className = "score-buttons";
+
+      [1,2,3,4,5].forEach(num => {
+        const btn = document.createElement("button");
+        btn.textContent = num;
+        if (currentRound.scores[pid][hIndex] === num) btn.classList.add("selected");
+
+        btn.onclick = () => {
+          currentRound.scores[pid][hIndex] = num;
+
+          // sounds
+          try {
+            if (num === 1) sounds.ace.play();
+            else if (num === 2) sounds.birdie.play();
+            else sounds.click.play();
+          } catch(e){}
+
+          renderRound();
+          updateSaveButtonState();
+
+          if (currentRound.currentHole < HOLES) {
+            setTimeout(() => {
+              currentRound.currentHole++;
+              try { sounds.nextHole.play(); } catch(e){}
+              renderRound();
+              updateSaveButtonState();
+            }, 600);
+          }
+        };
+
+        btnRow.appendChild(btn);
+      });
+
+      row.appendChild(btnRow);
+      container.appendChild(row);
+    });
+
+    container.classList.add("fade-in");
+    setTimeout(() => container.classList.remove("fade-in"), 250);
+
+    updateSaveButtonState();
+  }
+
+  function finalizeRound() {
+    if (!currentRound) return;
+
+    const allFilled = currentRound.playerIds.every(pid =>
+      currentRound.scores[pid].every(s => s !== null)
+    );
+    if (!allFilled) {
+      alert("Please enter a score for every hole for every player.");
+      return;
+    }
+
+    if (editModeRoundId) {
+      const idx = appData.rounds.findIndex(r => r.id === editModeRoundId);
+      if (idx >= 0) appData.rounds[idx] = currentRound;
+    } else {
+      appData.rounds.push(currentRound);
+    }
+
+    saveAll();
+    renderSummary(currentRound);
+    currentRound = null;
+    editModeRoundId = null;
+    show("screen-summary");
+  }
+
+  function renderSummary(round) {
+    const div = document.getElementById("summaryContent");
+    const date = new Date(round.date).toLocaleString();
+    let html = `<div><strong>${date}</strong></div>`;
+
+    let bestDiff = null;
+    let winners = [];
+
+    round.playerIds.forEach(pid => {
+      const scores = round.scores[pid];
+      const total = scores.reduce((a,b)=>a+b,0);
+      const diff = total - COURSE_PAR;
+
+      if (bestDiff === null || diff < bestDiff) {
+        bestDiff = diff;
+        winners = [getPlayer(pid).name];
+      } else if (diff === bestDiff) {
+        winners.push(getPlayer(pid).name);
+      }
+
+      const front = scores.slice(0,10).reduce((a,b)=>a+b,0);
+      const back  = scores.slice(10).reduce((a,b)=>a+b,0);
+
+      html += `
+        <div style="margin-top:6px;">
+          <strong>${getPlayer(pid).name}</strong>: ${total} (${fmt(diff)})<br>
+          Front (Barred Owl): ${front} · Back (Great Horned): ${back}
+        </div>
+      `;
+    });
+
+    html += `<div style="margin-top:10px;">🏆 Winner: ${winners.join(", ")}</div>`;
+    div.innerHTML = html;
+  }
+
+  // ---- History ----
+  function renderHistory() {
+    const div = document.getElementById("historyContent");
+    if (!appData.rounds.length) {
+      div.innerHTML = "<p>No rounds yet.</p>";
+      return;
+    }
+    div.innerHTML = appData.rounds.slice().reverse().map(r => {
+      const date = new Date(r.date).toLocaleString();
+      let playersHtml = "";
+      Object.keys(r.scores).forEach(pid => {
+        const scores = r.scores[pid];
+        const total = scores.reduce((a,b)=>a+b,0);
+        const diff = total - COURSE_PAR;
+        playersHtml += `${getPlayer(pid)?.name ?? "Player"}: ${total} (${fmt(diff)})<br>`;
+      });
+      return `
+        <div class="history-card">
+          <strong>${date}</strong><br>
+          ${playersHtml}
+          <button class="btn-small" onclick="editRound('${r.id}')">Edit</button>
+          <button class="btn-small btn-secondary" onclick="deleteRound('${r.id}')">Delete</button>
+        </div>
+      `;
+    }).join("");
+  }
+
+  window.deleteRound = id => {
+    if (!confirm("Delete round?")) return;
+    appData.rounds = appData.rounds.filter(r => r.id !== id);
+    saveAll();
+    renderHistory();
+  };
+
+  window.editRound = id => {
+    const r = appData.rounds.find(x => x.id === id);
+    if (!r) return;
+    editModeRoundId = id;
+    currentRound = JSON.parse(JSON.stringify(r));
+    renderRound();
+    show("screen-round");
+  };
+
+  // ---- Analytics + graph ----
+  function computeAnalytics(pid) {
+    const rounds = getPlayerRounds(pid);
+    if (!rounds.length) return null;
+    const totals = rounds.map(r => r.scores[pid].reduce((a,b)=>a+b,0));
+    const avg = totals.reduce((a,b)=>a+b,0) / totals.length;
+    return {
+      rounds: rounds.length,
+      avg: Math.round(avg * 10) / 10,
+      best: Math.min(...totals),
+      worst: Math.max(...totals),
+      handicap: computeHandicap(pid)
+    };
+  }
+
+  function renderAnalyticsPlayerList() {
+    const ul = document.getElementById("analyticsPlayerList");
+    if (!appData.players.length) {
+      ul.innerHTML = "<li>No players yet.</li>";
+      return;
+    }
+    ul.innerHTML = appData.players.map(p => `
+      <li style="padding:6px 0;cursor:pointer;" onclick="showAnalytics('${p.id}')">
+        ${p.name}
+      </li>
+    `).join("");
+  }
+
+  window.showAnalytics = pid => {
+    const info = computeAnalytics(pid);
+    const div = document.getElementById("analyticsResults");
+    const canvas = document.getElementById("handicapChart");
+
+    if (!info) {
+      div.innerHTML = "<p>No rounds yet for this player.</p>";
+      canvas.style.display = "none";
+      return;
+    }
+
+    div.innerHTML = `
+      <p><strong>${getPlayer(pid).name}</strong></p>
+      <p>Rounds: ${info.rounds}</p>
+      <p>Average Score: ${info.avg}</p>
+      <p>Best: ${info.best}</p>
+      <p>Worst: ${info.worst}</p>
+      <p>Handicap: ${info.handicap>0?`+${info.handicap}`:info.handicap}</p>
+    `;
+
+    const timeline = getHandicapTimeline(pid);
+    if (!timeline.length) {
+      canvas.style.display = "none";
+      return;
+    }
+    canvas.style.display = "block";
+
+    const labels = timeline.map(t => t.date.toLocaleDateString());
+    const data = timeline.map(t => t.handicap);
+
+    if (handicapChartInstance) handicapChartInstance.destroy();
+
+    handicapChartInstance = new Chart(canvas, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: "Handicap",
+          data,
+          borderColor: "#007aff",
+          borderWidth: 3,
+          tension: 0.3,
+          pointRadius: 3
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false }},
+        scales: {
+          y: { beginAtZero: false }
+        }
+      }
+    });
+  };
+
+  // ---- Leaderboards ----
+  function generateLeaderboards() {
+    const rounds = appData.rounds;
+    const results = [];
+
+    rounds.forEach(r => {
+      Object.keys(r.scores).forEach(pid => {
+        const player = getPlayer(pid)?.name ?? "Player";
+        const scores = r.scores[pid];
+        const total = scores.reduce((a,b)=>a+b,0);
+        const diffTotal = total - COURSE_PAR;
+        const front = scores.slice(0,10).reduce((a,b)=>a+b,0);
+        const diffFront = front - (10*PAR);
+        const back = scores.slice(10).reduce((a,b)=>a+b,0);
+        const diffBack = back - (10*PAR);
+
+        results.push({
+          player,
+          date: new Date(r.date),
+          total, diffTotal,
+          front, diffFront,
+          back, diffBack
+        });
+      });
+    });
+
+    return {
+      overall: results.slice().sort((a,b)=>a.total-b.total).slice(0,10),
+      barred:  results.slice().sort((a,b)=>a.front-b.front).slice(0,10),
+      horned:  results.slice().sort((a,b)=>a.back-b.back).slice(0,10)
+    };
+  }
+
+  function renderLeaderboards() {
+    const data = generateLeaderboards();
+
+    const overallDiv = document.getElementById("leaderboardOverall");
+    const barredDiv  = document.getElementById("leaderboardBarred");
+    const hornedDiv  = document.getElementById("leaderboardHorned");
+
+    const fmtLine = (label, r) =>
+      `${r.player}: ${label} (${fmt(label - (label === r.total ? COURSE_PAR : 10*PAR))}) — ${r.date.toLocaleDateString()}`;
+
+    overallDiv.innerHTML =
+      "<h3>🏆 Best Combined (20 holes)</h3>" +
+      (data.overall.length
+        ? "<ol>" + data.overall.map(r =>
+            `<li>${r.player}: ${r.total} (${fmt(r.diffTotal)}) — ${r.date.toLocaleDateString()}</li>`
+          ).join("") + "</ol>"
+        : "<p>No rounds yet.</p>");
+
+    barredDiv.innerHTML =
+      "<h3>🦅 Barred Owl (Front 10)</h3>" +
+      (data.barred.length
+        ? "<ol>" + data.barred.map(r =>
+            `<li>${r.player}: ${r.front} (${fmt(r.diffFront)}) — ${r.date.toLocaleDateString()}</li>`
+          ).join("") + "</ol>"
+        : "<p>No rounds yet.</p>");
+
+    hornedDiv.innerHTML =
+      "<h3>🦉 Great Horned (Back 10)</h3>" +
+      (data.horned.length
+        ? "<ol>" + data.horned.map(r =>
+            `<li>${r.player}: ${r.back} (${fmt(r.diffBack)}) — ${r.date.toLocaleDateString()}</li>`
+          ).join("") + "</ol>"
+        : "<p>No rounds yet.</p>");
+  }
+
+  // ---- Export ----
+  function exportCSV() {
+    if (!appData.rounds.length) {
+      alert("No rounds to export yet.");
+      return;
+    }
+    const rows = ["Date,Player,Hole,Score"];
+    appData.rounds.forEach(r => {
+      Object.keys(r.scores).forEach(pid => {
+        const player = getPlayer(pid)?.name ?? "Player";
+        r.scores[pid].forEach((score, idx) => {
+          rows.push(`${r.date},${player},${idx+1},${score}`);
+        });
+      });
+    });
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "rio-links-scores.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ---- Swipe navigation ----
+  let touchStartX = 0;
+  document.addEventListener("touchstart", e => {
+    if (!e.changedTouches || !e.changedTouches.length) return;
+    touchStartX = e.changedTouches[0].screenX;
+  });
+  document.addEventListener("touchend", e => {
+    if (!currentRound || !e.changedTouches || !e.changedTouches.length) return;
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    if (dx > 60) {
+      currentRound.currentHole = Math.max(1, currentRound.currentHole - 1);
+      try { sounds.nextHole.play(); } catch(e){}
+      renderRound();
+    } else if (dx < -60) {
+      currentRound.currentHole = Math.min(HOLES, currentRound.currentHole + 1);
+      try { sounds.nextHole.play(); } catch(e){}
+      renderRound();
+    }
+  });
+
+  // ---- Button wiring ----
+  document.getElementById("btnHomeStart").onclick = () => {
+    renderPlayerSelection();
+    show("screen-select-players");
+  };
+  document.getElementById("btnHomePlayers").onclick = () => {
+    renderPlayers();
+    show("screen-players");
+  };
+  document.getElementById("btnHomeHistory").onclick = () => {
+    renderHistory();
+    show("screen-history");
+  };
+  document.getElementById("btnHomeAnalytics").onclick = () => {
+    renderAnalyticsPlayerList();
+    document.getElementById("analyticsResults").innerHTML = "";
+    const canvas = document.getElementById("handicapChart");
+    canvas.style.display = "none";
+    show("screen-analytics");
+  };
+  document.getElementById("btnHomeLeaderboard").onclick = () => {
+    renderLeaderboards();
+    show("screen-leaderboards");
+  };
+  document.getElementById("btnHomeExport").onclick = exportCSV;
+
+  document.getElementById("btnAddPlayer").onclick = () => {
+    const input = document.getElementById("playerNameInput");
+    const name = input.value.trim();
+    if (!name) return;
+    appData.players.push({ id: "p_" + Date.now(), name });
+    input.value = "";
+    saveAll();
+    renderPlayers();
+  };
+
+  document.getElementById("btnBackFromPlayers").onclick = () => show("screen-home");
+  document.getElementById("btnBackFromSelect").onclick = () => show("screen-home");
+  document.getElementById("btnBackFromHistory").onclick = () => show("screen-home");
+  document.getElementById("btnBackFromAnalytics").onclick = () => show("screen-home");
+  document.getElementById("btnBackFromLeaderboards").onclick = () => show("screen-home");
+
+  document.getElementById("btnStartRoundFromSelection").onclick = () => {
+    const ids = [...document.querySelectorAll("#playerSelectList input:checked")].map(cb => cb.value);
+    if (!ids.length) {
+      alert("Select at least one player.");
+      return;
+    }
+    startRound(ids);
+  };
+
+  document.getElementById("btnPrevHole").onclick = () => {
+    if (!currentRound) return;
+    currentRound.currentHole = Math.max(1, currentRound.currentHole - 1);
+    renderRound();
+  };
+  document.getElementById("btnNextHole").onclick = () => {
+    if (!currentRound) return;
+    currentRound.currentHole = Math.min(HOLES, currentRound.currentHole + 1);
+    renderRound();
+  };
+  document.getElementById("btnFinishRoundBottom").onclick = finalizeRound;
+  document.getElementById("btnBackFromRound").onclick = () => {
+    if (confirm("Cancel this round? Unsaved changes will be lost.")) {
+      currentRound = null;
+      editModeRoundId = null;
+      show("screen-home");
+    }
+  };
+  document.getElementById("btnSummaryDone").onclick = () => show("screen-home");
+
+  // ---- Init ----
+  loadLocal();
+  renderPlayers();
+  show("screen-home");
+  loadFromFirebase();
+</script>
+</body>
+</html>
