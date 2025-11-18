@@ -7,7 +7,18 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Rio Links">
-  <!-- Chart.js for handicap history graph -->
+
+  <!-- PWA APP ICONS -->
+  <link rel="apple-touch-icon" href="apple-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+  <!-- PWA MANIFEST -->
+  <link rel="manifest" href="manifest.json">
+
+  <meta name="theme-color" content="#013220">
+
+  <!-- Chart.js for handicap + course analytics -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
@@ -26,16 +37,17 @@
       background: #fff;
       display: flex;
       flex-direction: column;
+      position: relative;
     }
     header {
-      padding: 12px 16px;
+      padding: 12px 16px 8px 16px;
       border-bottom: 1px solid #ddd;
       text-align: center;
     }
-    header h1 {
-      font-size: 1.1rem;
-      margin: 0;
-      font-weight: 600;
+    #appLogo {
+      width: 140px;
+      display: block;
+      margin: 0 auto 6px auto;
     }
     header .subtitle {
       font-size: 0.8rem;
@@ -45,6 +57,7 @@
     main {
       padding: 14px;
       flex: 1;
+      position: relative;
     }
     footer {
       padding: 8px;
@@ -229,12 +242,43 @@
     .scorecell.bogey {
       background: #ffd6d6;
     }
+
+    /* Summary watermark */
+    #summaryStamp {
+      width: 200px;
+      opacity: 0.1;
+      position: fixed;
+      top: 180px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: -1;
+      pointer-events: none;
+    }
+    #summaryContent {
+      margin-top: 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Heatmap tiles */
+    .heat-tile {
+      width: 100px;
+      height: 90px;
+      border-radius: 10px;
+      padding: 6px;
+      text-align: center;
+      font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border: 1px solid #ddd;
+    }
   </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <h1>⛳ Rio Links</h1>
+    <img id="appLogo" src="logo.png" alt="Rio Links Logo">
     <div class="subtitle">Barred Owl · Great Horned Owl</div>
   </header>
 
@@ -245,8 +289,10 @@
       <button class="btn" id="btnHomeStart">Start Round</button>
       <button class="btn btn-secondary" id="btnHomePlayers">Players</button>
       <button class="btn btn-secondary" id="btnHomeHistory">History</button>
-      <button class="btn btn-secondary" id="btnHomeAnalytics">Analytics</button>
+      <button class="btn btn-secondary" id="btnHomeAnalytics">Player Analytics</button>
       <button class="btn btn-secondary" id="btnHomeLeaderboard">Leaderboards</button>
+      <button class="btn btn-secondary" id="btnHomeCourseAnalytics">Course Analytics</button>
+      <button class="btn btn-secondary" id="btnHomeHeatmap">Heat Map</button>
       <button class="btn btn-secondary" id="btnHomeExport">Export CSV</button>
     </section>
 
@@ -263,7 +309,7 @@
     <section id="screen-select-players" class="hidden">
       <div class="section-title">Select Players</div>
       <ul id="playerSelectList"></ul>
-      <button class="btn" id="btnStartRoundFromSelection">Begin Round</</button>
+      <button class="btn" id="btnStartRoundFromSelection">Begin Round</button>
       <button class="btn-small btn-secondary" id="btnBackFromSelect">&lt; Home</button>
     </section>
 
@@ -298,6 +344,7 @@
     <!-- SUMMARY -->
     <section id="screen-summary" class="hidden">
       <div class="section-title">Round Summary</div>
+      <img id="summaryStamp" src="logo.png" alt="Course Logo">
       <div id="summaryContent"></div>
       <button class="btn" id="btnSummaryDone">Back to Home</button>
     </section>
@@ -309,9 +356,9 @@
       <button class="btn-small btn-secondary" id="btnBackFromHistory">&lt; Home</button>
     </section>
 
-    <!-- ANALYTICS -->
+    <!-- ANALYTICS (PLAYER) -->
     <section id="screen-analytics" class="hidden">
-      <div class="section-title">Analytics</div>
+      <div class="section-title">Player Analytics</div>
       <ul id="analyticsPlayerList"></ul>
       <div id="analyticsResults" style="margin-top:10px;"></div>
       <canvas id="handicapChart" width="400" height="220" style="margin-top:20px;"></canvas>
@@ -326,6 +373,25 @@
       <div id="leaderboardHorned" style="margin-top:18px;"></div>
       <button class="btn-small btn-secondary" id="btnBackFromLeaderboards">&lt; Home</button>
     </section>
+
+    <!-- COURSE ANALYTICS -->
+    <section id="screen-course-analytics" class="hidden">
+      <div class="section-title">Course Analytics</div>
+      <div id="courseAnalyticsContainer"></div>
+      <canvas id="courseAnalyticsChart" height="260" style="margin-top:15px;"></canvas>
+      <button class="btn-small btn-secondary" id="btnBackFromCourseAnalytics">&lt; Home</button>
+    </section>
+
+    <!-- HEATMAP -->
+    <section id="screen-heatmap" class="hidden">
+      <div class="section-title">Course Heat Map</div>
+      <div id="heatmapContainer" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      <div style="margin-top:12px;font-size:0.9rem;">
+        <strong>Legend:</strong>
+        🟩 Easy &nbsp;|&nbsp; 🟨 Neutral &nbsp;|&nbsp; 🟥 Hard
+      </div>
+      <button class="btn-small btn-secondary" id="btnBackFromHeatmap">&lt; Home</button>
+    </section>
   </main>
 
   <footer>
@@ -338,7 +404,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-  // ---- Firebase config (yours) ----
+  // ---- Firebase config ----
   const firebaseConfig = {
     apiKey: "AIzaSyCX9C7uy5JNklprp3tZeKV3tPGr410ix28",
     authDomain: "rio-links.firebaseapp.com",
@@ -390,10 +456,11 @@
   document.addEventListener("touchstart", unlockAudio, { once: true });
 
   // ---- State ----
-  let appData = { players: [], rounds: [] }; // rounds: {id,date,playerIds,scores{pid:[20]}}
+  let appData = { players: [], rounds: [] };
   let currentRound = null;
   let editModeRoundId = null;
   let handicapChartInstance = null;
+  let courseAnalyticsChart = null;
 
   // ---- Storage helpers ----
   function loadLocal() {
@@ -428,7 +495,7 @@
   }
 
   async function saveToFirebase() {
-    // extra guard: don't sync incomplete rounds
+    // guard: skip if any incomplete rounds exist
     const incompleteExists = appData.rounds.some(r =>
       Object.values(r.scores || {}).some(arr => arr.includes(null))
     );
@@ -438,13 +505,18 @@
     }
     try {
       await setDoc(FAMILY_DOC_REF, appData);
-      console.log("Firebase updated with completed rounds.");
     } catch (e) {
       console.warn("Firebase save error:", e);
     }
   }
 
-  const fmt = n => n > 0 ? `+${n}` : n === 0 ? "E" : n;
+  const fmt = n => {
+    const num = Number(n);
+    if (Number.isNaN(num)) return "-";
+    if (num > 0) return `+${num}`;
+    if (num === 0) return "E";
+    return `${num}`;
+  };
 
   function getPlayer(id) {
     return appData.players.find(p => p.id === id);
@@ -464,7 +536,7 @@
       return total - COURSE_PAR;
     });
     const avg = diffs.reduce((a,b)=>a+b,0) / diffs.length;
-    return Math.round(avg * 10) / 10;
+    return Number(avg.toFixed(1));
   }
 
   function getHandicapTimeline(id) {
@@ -477,7 +549,7 @@
         return total - COURSE_PAR;
       });
       const avg = diffs.reduce((a,b)=>a+b,0) / diffs.length;
-      const handicap = Math.round(avg * 10) / 10;
+      const handicap = Number(avg.toFixed(1));
       timeline.push({ date: new Date(rounds[i].date), handicap });
     }
     return timeline;
@@ -498,7 +570,7 @@
     }
     ul.innerHTML = appData.players.map(p => {
       const hc = computeHandicap(p.id);
-      return `<li>${p.name}<span class="pill">hcp ${hc>0?`+${hc}`:hc}</span></li>`;
+      return `<li>${p.name}<span class="pill">hcp ${hc > 0 ? `+${hc.toFixed(1)}` : hc.toFixed(1)}</span></li>`;
     }).join("");
   }
 
@@ -552,8 +624,8 @@
       const scores = currentRound.scores[pid];
       const played = scores.filter(v => v !== null);
       const total = played.reduce((a,b)=>a+b,0);
-      const diff = total - played.length * PAR;
-      bannerHtml += `<div>${getPlayer(pid).name}: ${total || 0} (${fmt(diff || 0)})</div>`;
+      const diff = played.length ? total - played.length * PAR : 0;
+      bannerHtml += `<div>${getPlayer(pid).name}: ${total || 0} (${fmt(diff.toFixed(1))})</div>`;
     });
     banner.innerHTML = bannerHtml || "No scores yet.";
 
@@ -577,7 +649,7 @@
         btn.onclick = () => {
           currentRound.scores[pid][hIndex] = num;
 
-          // play sound
+          // play sound slightly delayed so it doesn't get cut off
           setTimeout(() => {
             try {
               if (num === 1) { sounds.ace.currentTime = 0; sounds.ace.play(); }
@@ -590,7 +662,12 @@
           updateSaveButtonState();
           renderScorecard();
 
-          if (currentRound.currentHole < HOLES) {
+          // only auto-advance after ALL players scored this hole
+          const allPlayersScored = currentRound.playerIds.every(pid2 =>
+            currentRound.scores[pid2][hIndex] !== null
+          );
+
+          if (allPlayersScored && currentRound.currentHole < HOLES) {
             setTimeout(() => {
               currentRound.currentHole++;
               try { sounds.nextHole.currentTime = 0; sounds.nextHole.play(); } catch(e){}
@@ -634,7 +711,6 @@
     currentRound.playerIds.forEach(pid => {
       const player = getPlayer(pid);
       const scores = currentRound.scores[pid];
-      let total = 0;
       let rowHtml = `<tr><td>${player ? player.name : "Player"}</td>`;
 
       scores.forEach((s, idx) => {
@@ -643,8 +719,6 @@
         else if (s === 2) cls += " birdie";
         else if (s !== null && s > PAR) cls += " bogey";
 
-        if (s !== null) total += s;
-
         rowHtml += `
           <td class="${cls}" data-player="${pid}" data-hole="${idx}">
             ${s ?? "-"}
@@ -652,8 +726,20 @@
         `;
       });
 
-      const diff = total ? total - COURSE_PAR : null;
-      rowHtml += `<td>${total || "-"}</td><td>${diff === null ? "-" : fmt(diff)}</td></tr>`;
+      // partial totals: only completed holes
+      const playedScores = scores.filter(v => v !== null);
+      const playedCount = playedScores.length;
+      let displayTotal = "-";
+      let displayDiff = "-";
+      if (playedCount > 0) {
+        const partialTotal = playedScores.reduce((a,b)=>a+b,0);
+        const expectedPar = playedCount * PAR;
+        const partialDiff = partialTotal - expectedPar;
+        displayTotal = partialTotal;
+        displayDiff = fmt(Number(partialDiff.toFixed(2)));
+      }
+
+      rowHtml += `<td>${displayTotal}</td><td>${displayDiff}</td></tr>`;
       table.innerHTML += rowHtml;
     });
 
@@ -696,7 +782,7 @@
       appData.rounds.push(currentRound);
     }
 
-    // Local save + Firebase save ONLY when round is complete
+    // Save locally + to Firebase ONLY when round is complete
     saveLocal();
     await saveToFirebase();
 
@@ -731,7 +817,7 @@
 
       html += `
         <div style="margin-top:6px;">
-          <strong>${getPlayer(pid).name}</strong>: ${total} (${fmt(diff)})<br>
+          <strong>${getPlayer(pid).name}</strong>: ${total} (${fmt(diff.toFixed(1))})<br>
           Front (Barred Owl): ${front} · Back (Great Horned): ${back}
         </div>
       `;
@@ -755,7 +841,7 @@
         const scores = r.scores[pid];
         const total = scores.reduce((a,b)=>a+b,0);
         const diff = total - COURSE_PAR;
-        playersHtml += `${getPlayer(pid)?.name ?? "Player"}: ${total} (${fmt(diff)})<br>`;
+        playersHtml += `${getPlayer(pid)?.name ?? "Player"}: ${total} (${fmt(diff.toFixed(1))})<br>`;
       });
       return `
         <div class="history-card">
@@ -768,11 +854,11 @@
     }).join("");
   }
 
-  window.deleteRound = id => {
+  window.deleteRound = async id => {
     if (!confirm("Delete round?")) return;
     appData.rounds = appData.rounds.filter(r => r.id !== id);
     saveLocal();
-    saveToFirebase();
+    await saveToFirebase();
     renderHistory();
   };
 
@@ -794,7 +880,7 @@
     const avg = totals.reduce((a,b)=>a+b,0) / totals.length;
     return {
       rounds: rounds.length,
-      avg: Math.round(avg * 10) / 10,
+      avg: Number(avg.toFixed(1)),
       best: Math.min(...totals),
       worst: Math.max(...totals),
       handicap: computeHandicap(pid)
@@ -828,10 +914,10 @@
     div.innerHTML = `
       <p><strong>${getPlayer(pid).name}</strong></p>
       <p>Rounds: ${info.rounds}</p>
-      <p>Average Score: ${info.avg}</p>
+      <p>Average Score: ${info.avg.toFixed(1)}</p>
       <p>Best: ${info.best}</p>
       <p>Worst: ${info.worst}</p>
-      <p>Handicap: ${info.handicap>0?`+${info.handicap}`:info.handicap}</p>
+      <p>Handicap: ${info.handicap > 0 ? `+${info.handicap.toFixed(1)}` : info.handicap.toFixed(1)}</p>
     `;
 
     const timeline = getHandicapTimeline(pid);
@@ -861,9 +947,7 @@
       },
       options: {
         plugins: { legend: { display: false }},
-        scales: {
-          y: { beginAtZero: false }
-        }
+        scales: { y: { beginAtZero: false } }
       }
     });
   };
@@ -912,7 +996,7 @@
       "<h3>🏆 Best Combined (20 holes)</h3>" +
       (data.overall.length
         ? "<ol>" + data.overall.map(r =>
-            `<li>${r.player}: ${r.total} (${fmt(r.diffTotal)}) — ${r.date.toLocaleDateString()}</li>`
+            `<li>${r.player}: ${r.total} (${fmt(r.diffTotal.toFixed(1))}) — ${r.date.toLocaleDateString()}</li>`
           ).join("") + "</ol>"
         : "<p>No rounds yet.</p>");
 
@@ -920,7 +1004,7 @@
       "<h3>🦅 Barred Owl (Front 10)</h3>" +
       (data.barred.length
         ? "<ol>" + data.barred.map(r =>
-            `<li>${r.player}: ${r.front} (${fmt(r.diffFront)}) — ${r.date.toLocaleDateString()}</li>`
+            `<li>${r.player}: ${r.front} (${fmt(r.diffFront.toFixed(1))}) — ${r.date.toLocaleDateString()}</li>`
           ).join("") + "</ol>"
         : "<p>No rounds yet.</p>");
 
@@ -928,9 +1012,135 @@
       "<h3>🦉 Great Horned (Back 10)</h3>" +
       (data.horned.length
         ? "<ol>" + data.horned.map(r =>
-            `<li>${r.player}: ${r.back} (${fmt(r.diffBack)}) — ${r.date.toLocaleDateString()}</li>`
+            `<li>${r.player}: ${r.back} (${fmt(r.diffBack.toFixed(1))}) — ${r.date.toLocaleDateString()}</li>`
           ).join("") + "</ol>"
         : "<p>No rounds yet.</p>");
+  }
+
+  // ---- Course Analytics ----
+  function renderCourseAnalytics() {
+    const container = document.getElementById("courseAnalyticsContainer");
+    const canvas = document.getElementById("courseAnalyticsChart");
+    container.innerHTML = "";
+
+    if (!appData.rounds.length) {
+      container.innerHTML = "<p>No rounds recorded yet.</p>";
+      if (courseAnalyticsChart) courseAnalyticsChart.destroy();
+      return;
+    }
+
+    const holeStats = Array(HOLES).fill(null).map((_, i) => ({
+      hole: i + 1,
+      name: HOLE_NAMES[i],
+      scores: []
+    }));
+
+    appData.rounds.forEach(r => {
+      Object.values(r.scores).forEach(arr => {
+        arr.forEach((score, i) => {
+          if (score !== null) holeStats[i].scores.push(score);
+        });
+      });
+    });
+
+    const difficultyData = holeStats.map(h => {
+      if (!h.scores.length) return { ...h, avg: null, diff: null };
+      const avg = h.scores.reduce((a,b)=>a+b,0) / h.scores.length;
+      return { ...h, avg, diff: avg - PAR };
+    });
+
+    difficultyData.sort((a,b)=>(b.diff ?? -999) - (a.diff ?? -999));
+
+    let html = "<table><tr><th>#</th><th>Hole</th><th>Avg</th><th>Δ</th></tr>";
+    difficultyData.forEach((h, idx) => {
+      html += `<tr>
+        <td>${idx+1}</td>
+        <td>${h.name}</td>
+        <td>${h.avg !== null ? h.avg.toFixed(2) : "-"}</td>
+        <td>${h.diff !== null ? fmt(Number(h.diff.toFixed(2))) : "-"}</td>
+      </tr>`;
+    });
+    html += "</table>";
+    container.innerHTML = html;
+
+    const labels = difficultyData.map(h => `H${h.hole}`);
+    const values = difficultyData.map(h => h.diff ?? 0);
+
+    if (courseAnalyticsChart) courseAnalyticsChart.destroy();
+
+    courseAnalyticsChart = new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: values.map(v =>
+            v > 0.5 ? "#ff6b6b" : v > 0 ? "#ffd93b" : "#7dd87d"
+          )
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false }},
+        scales: {
+          y: {
+            title: { display: true, text: "Avg vs Par (Strokes)" }
+          }
+        }
+      }
+    });
+  }
+
+  // ---- Heatmap ----
+  function renderHeatmap() {
+    const container = document.getElementById("heatmapContainer");
+    container.innerHTML = "";
+
+    if (!appData.rounds.length) {
+      container.innerHTML = "<p>No data yet.</p>";
+      return;
+    }
+
+    const holeStats = Array(HOLES).fill(null).map((_, i) => ({
+      hole: i + 1,
+      name: HOLE_NAMES[i],
+      scores: []
+    }));
+
+    appData.rounds.forEach(r => {
+      Object.values(r.scores).forEach(arr => {
+        arr.forEach((score, i) => {
+          if (score !== null) holeStats[i].scores.push(score);
+        });
+      });
+    });
+
+    const heatData = holeStats.map(h => {
+      if (!h.scores.length) return { ...h, avg: null, diff: null };
+      const avg = h.scores.reduce((a,b)=>a+b,0) / h.scores.length;
+      return { ...h, avg, diff: avg - PAR };
+    });
+
+    heatData.sort((a,b)=>(b.diff ?? -999) - (a.diff ?? -999)); // hardest first
+
+    heatData.forEach(h => {
+      const tile = document.createElement("div");
+      tile.className = "heat-tile";
+
+      let bg = "#d4f8d4"; // green (easy)
+      if (h.diff > 0.25) bg = "#ffd6d6";       // red (hard)
+      else if (h.diff > -0.25) bg = "#fff9c4"; // yellow (neutral)
+
+      tile.style.background = bg;
+
+      tile.innerHTML = `
+        <strong>${h.name}</strong>
+        <div style="font-size:1.1rem;margin-top:4px;">
+          ${h.diff !== null ? fmt(Number(h.diff.toFixed(2))) : "-"}
+        </div>
+      `;
+
+      container.appendChild(tile);
+    });
   }
 
   // ---- Export ----
@@ -957,7 +1167,7 @@
     URL.revokeObjectURL(url);
   }
 
-  // ---- Landscape scorecard click editing ----
+  // ---- Scorecard click editing (live sync) ----
   document.addEventListener("click", (e) => {
     if (!currentRound) return;
     if (!e.target.classList.contains("scorecell")) return;
@@ -971,7 +1181,7 @@
       `Score for ${getPlayer(pid)?.name || "Player"} on Hole ${holeIdx + 1}:`,
       existing ?? ""
     );
-    if (input === null) return; // cancelled
+    if (input === null) return;
 
     const val = parseInt(input, 10);
     if (!Number.isInteger(val) || val < 1 || val > 10) return;
@@ -1029,16 +1239,24 @@
     renderLeaderboards();
     show("screen-leaderboards");
   };
+  document.getElementById("btnHomeCourseAnalytics").onclick = () => {
+    renderCourseAnalytics();
+    show("screen-course-analytics");
+  };
+  document.getElementById("btnHomeHeatmap").onclick = () => {
+    renderHeatmap();
+    show("screen-heatmap");
+  };
   document.getElementById("btnHomeExport").onclick = exportCSV;
 
-  document.getElementById("btnAddPlayer").onclick = () => {
+  document.getElementById("btnAddPlayer").onclick = async () => {
     const input = document.getElementById("playerNameInput");
     const name = input.value.trim();
     if (!name) return;
     appData.players.push({ id: "p_" + Date.now(), name });
     input.value = "";
     saveLocal();
-    saveToFirebase();
+    await saveToFirebase();
     renderPlayers();
   };
 
@@ -1047,6 +1265,8 @@
   document.getElementById("btnBackFromHistory").onclick = () => show("screen-home");
   document.getElementById("btnBackFromAnalytics").onclick = () => show("screen-home");
   document.getElementById("btnBackFromLeaderboards").onclick = () => show("screen-home");
+  document.getElementById("btnBackFromCourseAnalytics").onclick = () => show("screen-home");
+  document.getElementById("btnBackFromHeatmap").onclick = () => show("screen-home");
 
   document.getElementById("btnStartRoundFromSelection").onclick = () => {
     const ids = [...document.querySelectorAll("#playerSelectList input:checked")].map(cb => cb.value);
@@ -1092,6 +1312,12 @@
   // Orientation listeners
   window.addEventListener("orientationchange", handleOrientation);
   window.addEventListener("resize", handleOrientation);
+
+  // Register service worker for PWA
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./service-worker.js")
+      .catch(err => console.log("SW registration failed:", err));
+  }
 
   // ---- Init ----
   loadLocal();
