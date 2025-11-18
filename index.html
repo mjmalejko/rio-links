@@ -280,6 +280,8 @@
       <button class="btn btn-secondary" id="btnHomeLeaderboard">Leaderboards</button>
       <button class="btn btn-secondary" id="btnHomeCourseAnalytics">Course Analytics</button>
       <button class="btn btn-secondary" id="btnHomeExport">Export CSV</button>
+      <button class="btn btn-secondary" id="btnExportData">Export Full Backup</button>
+
     </section>
 
     <!-- PLAYERS -->
@@ -1221,6 +1223,33 @@
   };
 
   document.getElementById("btnHomeExport").onclick = exportCSV;
+document.getElementById("btnExportData").onclick = async () => {
+  try {
+    const snap = await getDoc(FAMILY_DOC_REF);
+    
+    if (!snap.exists()) {
+      alert("No Firebase data found.");
+      return;
+    }
+
+    const data = snap.data();
+    const json = JSON.stringify(data, null, 2);
+
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `rio-links-backup-${new Date().toISOString().split("T")[0]}.json`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error(err);
+    alert("Error exporting. Check console.");
+  }
+};
+
 
   document.getElementById("btnAddPlayer").onclick = async () => {
     const input = document.getElementById("playerNameInput");
