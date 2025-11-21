@@ -275,6 +275,31 @@
   The creator of this page is NOT affiliated with any company or brand in any way.
   This page is a personal project made in connection with an educational exercise.
 </div>
+  <div id="pinLockScreen" style="
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 20px;
+  text-align: center;">
+  
+  <h2 style="margin-bottom: 10px; color:#333;">Enter Family PIN</h2>
+  <p style="color:#666; font-size:0.9rem; margin-bottom: 20px;">
+    This keeps scores private for your family only.
+  </p>
+
+  <input id="pinInput" type="password" maxlength="4" placeholder="4-digit PIN"
+    style="padding:10px;font-size:1.2rem;width:140px;text-align:center;border-radius:8px;border:1px solid #ccc;margin-bottom:10px;">
+  
+  <button id="pinSubmitBtn" class="btn">Unlock</button>
+
+  <p id="pinError" style="color:red; margin-top:10px; display:none;">Incorrect PIN</p>
+</div>
   <main>
     <!-- HOME -->
     <section id="screen-home">
@@ -404,6 +429,31 @@ function fmtDiff(n) {
   if (num > 0) return `+${num.toFixed ? num.toFixed(1) : num}`;
   if (num === 0) return "E";
   return `${num.toFixed ? num.toFixed(1) : num}`;
+}
+  /* =========================
+   SIMPLE PIN LOCK
+   ========================= */
+
+const FAMILY_PIN = "1989";  // <-- CHANGE THIS TO YOUR PIN
+
+function initPinLock() {
+  const lock = document.getElementById("pinLockScreen");
+  const input = document.getElementById("pinInput");
+  const btn = document.getElementById("pinSubmitBtn");
+  const error = document.getElementById("pinError");
+
+  btn.onclick = () => {
+    if (input.value === FAMILY_PIN) {
+      lock.style.display = "none";   // unlock app
+    } else {
+      error.style.display = "block";
+      input.value = "";
+    }
+  };
+
+  input.addEventListener("keypress", e => {
+    if (e.key === "Enter") btn.click();
+  });
 }
 
 /* =========================
@@ -1300,6 +1350,7 @@ if ("serviceWorker" in navigator) {
 /* =========================
    APP INIT
    ========================= */
+initPinLock();
 loadLocal();
 renderPlayers();
 showScreen("screen-home");
@@ -1308,3 +1359,4 @@ initFirebase(); // connect to Firebase Spark if available
 </script>
 </body>
 </html>
+
