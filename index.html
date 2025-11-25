@@ -310,9 +310,10 @@
       <button class="btn btn-secondary" id="btnHomeAnalytics">Player Analytics</button>
       <button class="btn btn-secondary" id="btnHomeLeaderboard">Leaderboards</button>
       <button class="btn btn-secondary" id="btnHomeCourseAnalytics">Course Analytics</button>
+      <button class="btn btn-secondary" id="btnHomeCourseMap">Course Map</button>
       <button class="btn btn-secondary" id="btnHomeExport">Export Scores (CSV)</button>
       <button class="btn btn-secondary" id="btnExportJSON">Export Backup (JSON)</button>
-      <button class="btn btn-secondary" id="btnImportBackup">Import Backup</button>
+      <button class="btn btn-secondary" id="btnImportBackup">Import Backup</button> 
       <input id="backupFileInput" type="file" accept=".json" style="display:none;">
     </section>
 
@@ -400,6 +401,13 @@
       <canvas id="courseAnalyticsChart" height="260" style="margin-top:15px;"></canvas>
       <button class="btn-small btn-secondary" id="btnBackFromCourseAnalytics">&lt; Home</button>
     </section>
+    <!-- COURSE MAP -->
+  <section id="screen-course-map" class="hidden">
+    <div class="section-title">Course Map</div>
+    <img src="course-map.jpg" alt="Backyard Course Map" style="width:100%;border-radius:12px;margin-top:10px;">
+    <button class="btn-small btn-secondary" id="btnBackFromCourseMap">&lt; Home</button>
+  </section>
+    
   </main>
 
   <footer>
@@ -1245,6 +1253,15 @@ function initButtons() {
     renderCourseAnalytics();
     showScreen("screen-course-analytics");
   };
+
+  document.getElementById("btnHomeCourseMap").onclick = () => {
+  showScreen("screen-course-map");
+  };
+
+  document.getElementById("btnBackFromCourseMap").onclick = () => {
+  showScreen("screen-home");
+  };
+
   document.getElementById("btnHomeExport").onclick = exportCSV;
   document.getElementById("btnExportJSON").onclick = exportBackupJSON;
 
@@ -1383,6 +1400,7 @@ initFirebase(); // connect to Firebase Spark if available
 </script>
 </body>
 </html>
+
 
 
 
