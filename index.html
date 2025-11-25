@@ -1122,7 +1122,7 @@ function renderCourseAnalytics() {
   difficultyData.forEach((h, idx) => {
     html += `<tr>
       <td>${idx+1}</td>
-      <td>${h.name}</td>
+      <td>${h.name} <br><span style="font-size:0.7rem;color:#666;">${HOLE_DESCRIPTIONS[h.hole - 1]}</span></td>
       <td>${h.avg !== null ? h.avg.toFixed(2) : "-"}</td>
       <td>${h.diff !== null ? fmtDiff(h.diff) : "-"}</td>
     </tr>`;
@@ -1383,5 +1383,6 @@ initFirebase(); // connect to Firebase Spark if available
 </script>
 </body>
 </html>
+
 
 
