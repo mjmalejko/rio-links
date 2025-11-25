@@ -423,6 +423,29 @@ const HOLE_NAMES = [
   "Reverse Shoe", "Second Ridge", "True North", "Slope Run", "Home Roost"
 ];
 
+const HOLE_DESCRIPTIONS = [
+  "Flag 1 to 2",
+  "Flag 2 to 3",
+  "Flag 3 to 4",
+  "Flag 4 to 5",
+  "Flag 5 to 1",
+  "Flag 1 to 5",
+  "Flag 5 to 4",
+  "Flag 4 to 3",
+  "Flag 3 to 2",
+  "Flag 2 to 1",
+  "Flag 1 to 4",
+  "Flag 4 to 2",
+  "Flag 2 to 3",
+  "Flag 3 to 5",
+  "Flag 5 to 2",
+  "Flag 2 to 5",
+  "Flag 5 to 3",
+  "Flag 3 to 2",
+  "Flag 2 to 4",
+  "Flag 4 to 1"
+];  
+
 function fmtDiff(n) {
   const num = Number(n);
   if (Number.isNaN(num)) return "-";
@@ -667,7 +690,8 @@ function renderRound() {
 
   roundHoleLabel.textContent = `Hole ${h}/${HOLES}`;
   const courseName = h <= 10 ? "Barred Owl" : "Great Horned Owl";
-  holeTitle.textContent = `${courseName} · ${HOLE_NAMES[h-1]} (Par ${PAR})`;
+  holeTitle.textContent =  `${courseName} · ${HOLE_NAMES[h-1]} (Par ${PAR}) — ${HOLE_DESCRIPTIONS[h-1]}`;
+
 
   let bannerHtml = "";
   currentRound.playerIds.forEach(pid => {
@@ -1359,4 +1383,5 @@ initFirebase(); // connect to Firebase Spark if available
 </script>
 </body>
 </html>
+
 
