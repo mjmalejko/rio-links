@@ -945,14 +945,38 @@ window.editRound = function(id) {
 function computeAnalytics(pid) {
   const rounds = getPlayerRounds(pid);
   if (!rounds.length) return null;
-  const totals = rounds.map(r => r.scores[pid].reduce((a,b)=>a+b,0));
-  const avg = totals.reduce((a,b)=>a+b,0) / totals.length;
+
+  const totals = [];
+  const frontTotals = [];
+  const backTotals = [];
+  let totalCareerPutts = 0;
+
+  rounds.forEach(r => {
+    const scores = r.scores[pid];
+    const front = scores.slice(0, 10).reduce((a, b) => a + b, 0);
+    const back  = scores.slice(10).reduce((a, b) => a + b, 0);
+    const total = front + back;
+
+    frontTotals.push(front);
+    backTotals.push(back);
+    totals.push(total);
+
+    totalCareerPutts += total;
+  });
+
+  const avgTotal  = totals.reduce((a, b) => a + b, 0) / totals.length;
+  const avgFront  = frontTotals.reduce((a, b) => a + b, 0) / frontTotals.length;
+  const avgBack   = backTotals.reduce((a, b) => a + b, 0) / backTotals.length;
+
   return {
     rounds: rounds.length,
-    avg: Number(avg.toFixed(1)),
+    avg: Number(avgTotal.toFixed(1)),
+    avgFront: Number(avgFront.toFixed(1)),
+    avgBack: Number(avgBack.toFixed(1)),
     best: Math.min(...totals),
     worst: Math.max(...totals),
-    handicap: computeHandicap(pid)
+    handicap: computeHandicap(pid),
+    totalPutts: totalCareerPutts   
   };
 }
 
@@ -984,14 +1008,17 @@ window.showAnalytics = function(pid) {
     ? `+${info.handicap.toFixed(1)}`
     : info.handicap.toFixed(1);
 
-  div.innerHTML = `
+ div.innerHTML = `
     <p><strong>${getPlayer(pid).name}</strong></p>
-    <p>Rounds: ${info.rounds}</p>
+    <p>Rounds Played: ${info.rounds}</p>
+    <p>Total Career Putts: ${info.totalPutts}</p>
     <p>Average Score: ${info.avg.toFixed(1)}</p>
-    <p>Best: ${info.best}</p>
-    <p>Worst: ${info.worst}</p>
+    <p>Front 10 Avg: ${info.avgFront.toFixed(1)}</p>
+    <p>Back 10 Avg: ${info.avgBack.toFixed(1)}</p>
+    <p>Best Round: ${info.best}</p>
+    <p>Worst Round: ${info.worst}</p>
     <p>Handicap: ${hcText}</p>
-  `;
+`;
 
   const timeline = getHandicapTimeline(pid);
   if (!timeline.length) {
@@ -1400,6 +1427,7 @@ initFirebase(); // connect to Firebase Spark if available
 </script>
 </body>
 </html>
+
 
 
 
