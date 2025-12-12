@@ -19,8 +19,10 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- Firebase compat (Spark-friendly and GH Pages–safe) -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+
 
   <style>
     :root {
@@ -538,12 +540,24 @@ function initFirebase() {
     if (!firebase.apps || !firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
+
+    // ✅ ADD ANONYMOUS AUTH HERE
+    firebase.auth().signInAnonymously()
+      .then(() => {
+        console.log("Signed in anonymously");
+      })
+      .catch((error) => {
+        console.error("Anonymous auth failed", error);
+      });
+
     db = firebase.firestore();
+
     loadFromFirebase();
   } catch (e) {
     console.warn("Firebase init failed; app will run local-only:", e);
   }
 }
+
 
 function getFamilyDocRef() {
   if (!db) return null;
@@ -1427,6 +1441,7 @@ initFirebase(); // connect to Firebase Spark if available
 </script>
 </body>
 </html>
+
 
 
 
