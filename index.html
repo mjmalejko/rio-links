@@ -510,7 +510,6 @@ let editModeRoundId = null;
 
 let handicapChartInstance = null;
 let courseAnalyticsChart = null;
-let myPlayerId = null;
 
 /* Firebase globals (compat) */
 let db = null;
@@ -1167,11 +1166,12 @@ function renderCourseAnalytics() {
   }));
 
   appData.rounds.forEach(r => {
-    Object.keys(r.scores).forEach(pid => {
-      if (
-        filter === "me" && pid !== myPlayerId ||
-        filter === "others" && pid === myPlayerId
-      ) return;
+Object.keys(r.scores).forEach(pid => {
+  const player = getPlayer(pid);
+  const isMike = player && player.name.toLowerCase() === "mike";
+
+  if (filter === "me" && !isMike) return;
+  if (filter === "others" && isMike) return;
 
       r.scores[pid].forEach((score, i) => {
         if (score !== null) holeStats[i].scores.push(score);
