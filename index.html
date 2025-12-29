@@ -398,6 +398,18 @@
 
     <!-- COURSE ANALYTICS -->
     <section id="screen-course-analytics" class="hidden">
+      
+<div style="margin-bottom:10px;">
+  <label for="courseFilter" style="font-size:0.85rem;font-weight:600;">
+    View scores for:
+  </label>
+  <select id="courseFilter" style="margin-left:6px;padding:4px;">
+    <option value="all">Everyone</option>
+    <option value="me">Me</option>
+    <option value="others">Everyone Else</option>
+  </select>
+</div>
+
       <div class="section-title">Course Analytics</div>
       <div id="courseAnalyticsContainer"></div>
       <canvas id="courseAnalyticsChart" height="260" style="margin-top:15px;"></canvas>
@@ -498,6 +510,7 @@ let editModeRoundId = null;
 
 let handicapChartInstance = null;
 let courseAnalyticsChart = null;
+let myPlayerId = null;
 
 /* Firebase globals (compat) */
 let db = null;
@@ -1137,6 +1150,8 @@ function renderLeaderboards() {
 function renderCourseAnalytics() {
   const container = document.getElementById("courseAnalyticsContainer");
   const canvas = document.getElementById("courseAnalyticsChart");
+  const filter = document.getElementById("courseFilter")?.value || "all";
+
   container.innerHTML = "";
 
   if (!appData.rounds.length) {
@@ -1152,8 +1167,13 @@ function renderCourseAnalytics() {
   }));
 
   appData.rounds.forEach(r => {
-    Object.values(r.scores).forEach(arr => {
-      arr.forEach((score, i) => {
+    Object.keys(r.scores).forEach(pid => {
+      if (
+        filter === "me" && pid !== myPlayerId ||
+        filter === "others" && pid === myPlayerId
+      ) return;
+
+      r.scores[pid].forEach((score, i) => {
         if (score !== null) holeStats[i].scores.push(score);
       });
     });
@@ -1171,7 +1191,7 @@ function renderCourseAnalytics() {
   difficultyData.forEach((h, idx) => {
     html += `<tr>
       <td>${idx+1}</td>
-      <td>${h.name} <br><span style="font-size:0.7rem;color:#666;">${HOLE_DESCRIPTIONS[h.hole - 1]}</span></td>
+      <td>${h.name}</td>
       <td>${h.avg !== null ? h.avg.toFixed(2) : "-"}</td>
       <td>${h.diff !== null ? fmtDiff(h.diff) : "-"}</td>
     </tr>`;
@@ -1203,6 +1223,7 @@ function renderCourseAnalytics() {
     }
   });
 }
+
 
 /* =========================
    EXPORT / IMPORT
@@ -1267,6 +1288,13 @@ function importBackupJSON(file) {
 /* =========================
    INIT & BUTTON WIRING
    ========================= */
+
+  document.addEventListener("change", (e) => {
+  if (e.target && e.target.id === "courseFilter") {
+    renderCourseAnalytics();
+  }
+});
+
 function initButtons() {
   document.getElementById("btnHomeStart").onclick = () => {
     renderPlayerSelection();
@@ -1441,6 +1469,7 @@ initFirebase(); // connect to Firebase Spark if available
 </script>
 </body>
 </html>
+
 
 
 
