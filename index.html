@@ -174,6 +174,23 @@
       gap:8px;
       flex-wrap:wrap;
     }
+    .inline-stats.collapsed{
+      display:none;
+    }
+    .player-row.compact{
+      padding:8px 10px;
+    }
+    .player-name-btn{
+      background:none;
+      border:none;
+      padding:0;
+      margin:0;
+      font:inherit;
+      font-weight:700;
+      color:#111;
+      cursor:pointer;
+      text-align:left;
+    }
 
     .score-buttons button {
       margin: 5px;
@@ -519,6 +536,7 @@
     let editModeRoundId = null;
     let handicapChartInstance = null;
     let db = null;
+    let expandedPlayerStats = {};
 
     function loadLocal() {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -670,13 +688,22 @@
 
     function getCurrentBogeyFreeStreak(pid) {
       const rounds = getPlayerRounds(pid);
-      if (!rounds.length) return 0;
       const allScores = [];
+
+      // include historical rounds
       rounds.forEach(r => {
         r.scores[pid].forEach(score => {
           if (score !== null && score !== undefined) allScores.push(score);
         });
       });
+
+      // include current round (live gameplay)
+      if (currentRound && currentRound.scores[pid]) {
+        currentRound.scores[pid].forEach(score => {
+          if (score !== null && score !== undefined) allScores.push(score);
+        });
+      }
+
       let streak = 0;
       for (let i = allScores.length - 1; i >= 0; i--) {
         if (allScores[i] <= PAR) streak++;
@@ -784,10 +811,24 @@
         const stats = getHoleStatsForPlayer(pid, hIndex);
         const header = document.createElement("div");
         header.className = "player-header-row";
-        header.innerHTML = `<strong>${getPlayer(pid).name}</strong>`;
+        const collapseStats = currentRound.playerIds.length > 1;
+        const isExpanded = !!expandedPlayerStats[pid];
+        if (collapseStats) row.classList.add("compact");
+
+        const nameBtn = document.createElement("button");
+        nameBtn.className = "player-name-btn";
+        nameBtn.textContent = getPlayer(pid).name;
+        nameBtn.type = "button";
+        nameBtn.onclick = () => {
+          if (!collapseStats) return;
+          expandedPlayerStats[pid] = !expandedPlayerStats[pid];
+          renderRound();
+        };
+        header.appendChild(nameBtn);
         row.appendChild(header);
+
         const statsInline = document.createElement("div");
-        statsInline.className = "inline-stats";
+        statsInline.className = `inline-stats${collapseStats && !isExpanded ? " collapsed" : ""}`;
         statsInline.innerHTML = `
           Avg:${stats.avg !== null ? stats.avg.toFixed(2) : "-"} |
           L10:${stats.avg10 !== null ? stats.avg10.toFixed(2) : "-"} |
@@ -1225,6 +1266,7 @@
         }
         currentRound = { id: "r_" + Date.now(), date: new Date().toISOString(), playerIds: ids.slice(), currentHole: 1, scores: Object.fromEntries(ids.map(id => [id, Array(HOLES).fill(null)])) };
         editModeRoundId = null;
+        expandedPlayerStats = {};
         renderRound();
         handleOrientation();
         showScreen("screen-round");
