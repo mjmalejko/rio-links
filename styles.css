@@ -162,9 +162,6 @@
       color:#111;
       cursor:pointer;
       text-align:left;
-      display:flex;
-      align-items:center;
-      gap:6px;
     }
 
     .score-buttons button {
@@ -299,17 +296,4 @@
       padding:10px 14px;
       font-size:0.8rem;
       border-bottom:1px solid #d8ebff;
-    }
-
-.summary-card {
-      background:#fff;
-      padding:12px;
-      border-radius:14px;
-      border:1px solid #e5e5ea;
-    }
-
-.stat-toggle-hint {
-      font-size:0.7rem;
-      color:#777;
-      margin-left:4px;
     }
