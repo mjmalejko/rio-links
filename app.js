@@ -610,10 +610,16 @@ const PAR = 2;
       });
     };
 
+    function getTopWithTies(arr, key, limit = 15) {
+      const sorted = arr.slice().sort((a, b) => a[key] - b[key]);
+      if (sorted.length <= limit) return sorted;
+      const cutoffValue = sorted[limit - 1][key];
+      return sorted.filter(item => item[key] <= cutoffValue);
+    }
+
     function generateLeaderboards() {
-      const rounds = appData.rounds;
       const results = [];
-      rounds.forEach(r => {
+      appData.rounds.forEach(r => {
         Object.keys(r.scores).forEach(pid => {
           const player = getPlayer(pid)?.name ?? "Player";
           const scores = r.scores[pid];
@@ -627,36 +633,9 @@ const PAR = 2;
         });
       });
       return {
-          function getTopWithTies(arr, key, limit = 15) {
-  const sorted = arr.slice().sort((a, b) => a[key] - b[key]);
-  if (sorted.length <= limit) return sorted;
-  const cutoffValue = sorted[limit - 1][key];
-  return sorted.filter(item => item[key] <= cutoffValue);
-}
-
-function generateLeaderboards() {
-  const results = [];
-  appData.rounds.forEach(r => {
-    Object.keys(r.scores).forEach(pid => {
-      const player = getPlayer(pid)?.name ?? "Player";
-      const scores = r.scores[pid];
-      const total = scores.reduce((a, b) => a + b, 0);
-      const diffTotal = total - COURSE_PAR;
-      const front = scores.slice(0, 10).reduce((a, b) => a + b, 0);
-      const diffFront = front - (10 * PAR);
-      const back = scores.slice(10).reduce((a, b) => a + b, 0);
-      const diffBack = back - (10 * PAR);
-      results.push({ player, date: new Date(r.date), total, diffTotal, front, diffFront, back, diffBack });
-    });
-  });
-
-  return {
-    overall: getTopWithTies(results, "total", 15),
-    barred: getTopWithTies(results, "front", 15),
-    horned: getTopWithTies(results, "back", 15)
-  };
-}
-     
+        overall: getTopWithTies(results, "total", 15),
+        barred: getTopWithTies(results, "front", 15),
+        horned: getTopWithTies(results, "back", 15)
       };
     }
 
@@ -667,7 +646,7 @@ function generateLeaderboards() {
       document.getElementById("leaderboardHorned").innerHTML = "<h3>🦉 Great Horned (Back 10)</h3>" + (data.horned.length ? "<ol>" + data.horned.map(r => `<li>${r.player}: ${r.back} (${fmtDiff(r.diffBack)}) — ${r.date.toLocaleDateString()}</li>`).join("") + "</ol>" : "<p>No rounds yet.</p>");
     }
 
-    function renderCourseAnalytics() {
+function renderCourseAnalytics() {
       const container = document.getElementById("courseAnalyticsContainer");
       const filter = document.getElementById("courseFilter")?.value || "all";
       container.innerHTML = "";
