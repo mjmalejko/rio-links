@@ -29,10 +29,18 @@
     :root {
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
       font-size: 16px;
+      touch-action: manipulation;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #f5f5f7;
+      -webkit-text-size-adjust: 100%;
+      touch-action: manipulation;
     }
     body {
-      margin: 0;
-      background: #f5f5f7;
+      overscroll-behavior: none;
     }
     .app {
       max-width: 480px;
@@ -85,6 +93,7 @@
       background: #007aff;
       color: #fff;
       cursor: pointer;
+      touch-action: manipulation;
     }
     .btn-secondary {
       background: #e5e5ea;
@@ -101,17 +110,25 @@
       background: #e5e5ea;
       color: #111;
       cursor: pointer;
+      touch-action: manipulation;
     }
     .section-title {
       font-size: 1rem;
       font-weight: 600;
       margin-bottom: 8px;
     }
+    .sticky-top-actions {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: #fff;
+      padding-bottom: 8px;
+    }
 
     ul { list-style: none; margin: 0; padding: 0; }
     li { padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
 
-    input[type="text"] {
+    input[type="text"], select {
       width: 100%;
       padding: 8px 10px;
       border-radius: 8px;
@@ -135,6 +152,20 @@
       border-radius: 10px;
       background: #f8f8fa;
     }
+    .player-hole-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 10px;
+      margin-top: 6px;
+      font-size: 0.74rem;
+      color: #555;
+    }
+    .player-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
 
     .score-buttons button {
       margin: 5px;
@@ -144,6 +175,7 @@
       border: none;
       background: #e5e5ea;
       cursor: pointer;
+      touch-action: manipulation;
     }
     .score-buttons button.selected {
       background: #34c759;
@@ -197,7 +229,6 @@
     th:first-child, td:first-child { text-align: left; }
     tr:nth-child(even) { background: #fafafa; }
 
-    /* Scorecard (landscape) */
     #screen-scorecard table {
       width: 100%;
       border-collapse: collapse;
@@ -223,7 +254,6 @@
     .scorecell.birdie { background: #d4f8d4; }
     .scorecell.bogey { background: #ffd6d6; }
 
-    /* Summary watermark */
     #summaryStamp {
       width: 200px;
       opacity: 0.1;
@@ -236,7 +266,6 @@
     }
     #summaryContent { margin-top: 40px; position: relative; z-index: 1; }
 
-    /* Local privacy gate (NOT a login) */
     #accessGate {
       position: fixed;
       top: 0; left: 0;
@@ -281,12 +310,10 @@
       <div class="subtitle">Barred Owl · Great Horned Owl</div>
     </header>
 
-    <!-- Replace the old disclaimer with a simple, non-brand/phishy notice -->
     <div class="noticeBar">
       <strong>Local family score tracker.</strong> No sign-in, no payments, no email collection.
     </div>
 
-    <!-- Local privacy gate (avoids password/login cues) -->
     <div id="accessGate" aria-label="Local access gate">
       <h2 style="margin-bottom: 10px; color:#333;">Family Access Code</h2>
       <p style="color:#666; font-size:0.9rem; margin-bottom: 10px; max-width: 340px;">
@@ -306,7 +333,6 @@
     </div>
 
     <main>
-      <!-- HOME -->
       <section id="screen-home">
         <div class="section-title">Home</div>
         <button class="btn" id="btnHomeStart">Start Round</button>
@@ -322,7 +348,6 @@
         <input id="backupFileInput" type="file" accept=".json" style="display:none;">
       </section>
 
-      <!-- PLAYERS -->
       <section id="screen-players" class="hidden">
         <div class="section-title">Players</div>
         <input id="playerNameInput" type="text" placeholder="Add player (Luke, Mike, Gina...)" />
@@ -331,15 +356,15 @@
         <button class="btn-small btn-secondary" id="btnBackFromPlayers">&lt; Home</button>
       </section>
 
-      <!-- SELECT PLAYERS -->
       <section id="screen-select-players" class="hidden">
-        <div class="section-title">Select Players</div>
+        <div class="sticky-top-actions">
+          <div class="section-title">Select Players</div>
+          <button class="btn" id="btnStartRoundFromSelection">Begin Round</button>
+          <button class="btn-small btn-secondary" id="btnBackFromSelect">&lt; Home</button>
+        </div>
         <ul id="playerSelectList"></ul>
-        <button class="btn" id="btnStartRoundFromSelection">Begin Round</button>
-        <button class="btn-small btn-secondary" id="btnBackFromSelect">&lt; Home</button>
       </section>
 
-      <!-- ROUND -->
       <section id="screen-round" class="hidden">
         <div id="roundHoleLabel"></div>
         <div class="hole-label" id="holeTitle"></div>
@@ -357,7 +382,6 @@
         <button class="btn-small btn-secondary" id="btnBackFromRound">&lt; Cancel Round</button>
       </section>
 
-      <!-- SCORECARD -->
       <section id="screen-scorecard" class="hidden">
         <div class="section-title">Scorecard</div>
         <div id="scorecardTableContainer"></div>
@@ -366,7 +390,6 @@
         </p>
       </section>
 
-      <!-- SUMMARY -->
       <section id="screen-summary" class="hidden">
         <div class="section-title">Round Summary</div>
         <img id="summaryStamp" src="my-golf.jpg" alt="Course Logo">
@@ -374,14 +397,14 @@
         <button class="btn" id="btnSummaryDone">Back to Home</button>
       </section>
 
-      <!-- HISTORY -->
       <section id="screen-history" class="hidden">
-        <div class="section-title">Recent Rounds</div>
+        <div class="sticky-top-actions">
+          <button class="btn-small btn-secondary" id="btnBackFromHistory">&lt; Home</button>
+          <div class="section-title" style="margin-top:6px;">Recent Rounds</div>
+        </div>
         <div id="historyContent"></div>
-        <button class="btn-small btn-secondary" id="btnBackFromHistory">&lt; Home</button>
       </section>
 
-      <!-- PLAYER ANALYTICS -->
       <section id="screen-analytics" class="hidden">
         <div class="section-title">Player Analytics</div>
         <ul id="analyticsPlayerList"></ul>
@@ -390,7 +413,6 @@
         <button class="btn-small btn-secondary" id="btnBackFromAnalytics">&lt; Home</button>
       </section>
 
-      <!-- LEADERBOARDS -->
       <section id="screen-leaderboards" class="hidden">
         <div class="section-title">All-Time Leaderboards</div>
         <div id="leaderboardOverall" style="margin-top:10px;"></div>
@@ -399,26 +421,21 @@
         <button class="btn-small btn-secondary" id="btnBackFromLeaderboards">&lt; Home</button>
       </section>
 
-      <!-- COURSE ANALYTICS -->
       <section id="screen-course-analytics" class="hidden">
         <div style="margin-bottom:10px;">
           <label for="courseFilter" style="font-size:0.85rem;font-weight:600;">
             View scores for:
           </label>
-          <select id="courseFilter" style="margin-left:6px;padding:4px;">
+          <select id="courseFilter" style="margin-top:6px;">
             <option value="all">Everyone</option>
-            <option value="me">Me</option>
-            <option value="others">Everyone Else</option>
           </select>
         </div>
 
         <div class="section-title">Course Analytics</div>
         <div id="courseAnalyticsContainer"></div>
-        <canvas id="courseAnalyticsChart" height="260" style="margin-top:15px;"></canvas>
         <button class="btn-small btn-secondary" id="btnBackFromCourseAnalytics">&lt; Home</button>
       </section>
 
-      <!-- COURSE MAP -->
       <section id="screen-course-map" class="hidden">
         <div class="section-title">Course Map</div>
         <img src="course-map.jpg" alt="Backyard Course Map" style="width:100%;border-radius:12px;margin-top:10px;">
@@ -432,9 +449,6 @@
   </div>
 
   <script>
-    /* =========================
-       CORE CONSTANTS & HELPERS
-       ========================= */
     const PAR = 2;
     const HOLES = 20;
     const COURSE_PAR = PAR * HOLES;
@@ -462,32 +476,25 @@
       return `${num.toFixed ? num.toFixed(1) : num}`;
     }
 
-    /* =========================
-       LOCAL ACCESS GATE (NOT A LOGIN)
-       ========================= */
-    const FAMILY_ACCESS_CODE = "1989"; // <-- change this
+    const FAMILY_ACCESS_CODE = "1989";
 
     function initAccessGate() {
       const gate = document.getElementById("accessGate");
       const btn = document.getElementById("accessOpenBtn");
       const error = document.getElementById("accessError");
       const boxes = Array.from(document.querySelectorAll(".codeBox"));
-
       const readCode = () => boxes.map(b => b.value).join("");
-
       boxes[0]?.focus();
-
       boxes.forEach((box, i) => {
         box.addEventListener("input", () => {
           box.value = (box.value || "").replace(/[^0-9]/g, "").slice(0, 1);
           if (box.value && i < boxes.length - 1) boxes[i + 1].focus();
         });
-        box.addEventListener("keydown", (e) => {
+        box.addEventListener("keydown", e => {
           if (e.key === "Backspace" && !box.value && i > 0) boxes[i - 1].focus();
           if (e.key === "Enter") btn.click();
         });
       });
-
       btn.onclick = () => {
         if (readCode() === FAMILY_ACCESS_CODE) {
           gate.style.display = "none";
@@ -499,27 +506,16 @@
       };
     }
 
-    /* =========================
-       GLOBAL STATE
-       ========================= */
     let appData = { players: [], rounds: [] };
     let currentRound = null;
     let editModeRoundId = null;
-
     let handicapChartInstance = null;
-    let courseAnalyticsChart = null;
-
-    /* Firebase globals (compat) */
     let db = null;
 
-    /* =========================
-       LOCAL STORAGE
-       ========================= */
     function loadLocal() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        try { appData = JSON.parse(raw); }
-        catch (e) { console.error("Error parsing local storage:", e); }
+        try { appData = JSON.parse(raw); } catch (e) { console.error("Error parsing local storage:", e); }
       }
       if (!appData.players) appData.players = [];
       if (!appData.rounds) appData.rounds = [];
@@ -529,9 +525,6 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
     }
 
-    /* =========================
-       FIREBASE (COMPAT) SETUP
-       ========================= */
     const firebaseConfig = {
       apiKey: "AIzaSyCX9C7uy5JNklprp3tZeKV3tPGr410ix28",
       authDomain: "rio-links.firebaseapp.com",
@@ -544,15 +537,8 @@
 
     function initFirebase() {
       try {
-        if (!firebase.apps || !firebase.apps.length) {
-          firebase.initializeApp(firebaseConfig);
-        }
-
-        // Anonymous session only (no user credentials)
-        firebase.auth().signInAnonymously()
-          .then(() => console.log("Firebase: anonymous session started"))
-          .catch((error) => console.warn("Firebase anonymous auth failed", error));
-
+        if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        firebase.auth().signInAnonymously().then(() => console.log("Firebase: anonymous session started")).catch(error => console.warn("Firebase anonymous auth failed", error));
         db = firebase.firestore();
         loadFromFirebase();
       } catch (e) {
@@ -589,10 +575,7 @@
       try {
         const ref = getFamilyDocRef();
         if (!ref) return;
-
-        const incompleteExists = appData.rounds.some(r =>
-          Object.values(r.scores || {}).some(arr => arr.includes(null))
-        );
+        const incompleteExists = appData.rounds.some(r => Object.values(r.scores || {}).some(arr => arr.includes(null)));
         if (incompleteExists) {
           console.warn("Skipped Firebase sync: incomplete round present.");
           return;
@@ -603,9 +586,6 @@
       }
     }
 
-    /* =========================
-       UTILS
-       ========================= */
     function showScreen(id) {
       document.querySelectorAll("main section").forEach(s => s.classList.add("hidden"));
       const el = document.getElementById(id);
@@ -617,19 +597,14 @@
     }
 
     function getPlayerRounds(id) {
-      return appData.rounds
-        .filter(r => r.scores && r.scores[id])
-        .sort((a,b) => new Date(a.date) - new Date(b.date));
+      return appData.rounds.filter(r => r.scores && r.scores[id]).sort((a, b) => new Date(a.date) - new Date(b.date));
     }
 
     function computeHandicap(id) {
       const rounds = getPlayerRounds(id).slice(-10);
       if (!rounds.length) return 0;
-      const diffs = rounds.map(r => {
-        const total = r.scores[id].reduce((a,b)=>a+b,0);
-        return total - COURSE_PAR;
-      });
-      const avg = diffs.reduce((a,b)=>a+b,0) / diffs.length;
+      const diffs = rounds.map(r => r.scores[id].reduce((a, b) => a + b, 0) - COURSE_PAR);
+      const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
       return Number(avg.toFixed(1));
     }
 
@@ -637,20 +612,93 @@
       const rounds = getPlayerRounds(id);
       const timeline = [];
       for (let i = 0; i < rounds.length; i++) {
-        const slice = rounds.slice(Math.max(0, i-9), i+1);
-        const diffs = slice.map(r => {
-          const total = r.scores[id].reduce((a,b)=>a+b,0);
-          return total - COURSE_PAR;
-        });
-        const avg = diffs.reduce((a,b)=>a+b,0) / diffs.length;
+        const slice = rounds.slice(Math.max(0, i - 9), i + 1);
+        const diffs = slice.map(r => r.scores[id].reduce((a, b) => a + b, 0) - COURSE_PAR);
+        const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
         timeline.push({ date: new Date(rounds[i].date), handicap: Number(avg.toFixed(1)) });
       }
       return timeline;
     }
 
-    /* =========================
-       PLAYERS
-       ========================= */
+    function getHoleStatsForPlayer(pid, holeIdx) {
+      const rounds = getPlayerRounds(pid);
+      const holeScores = rounds.map(r => r.scores[pid][holeIdx]).filter(v => v !== null && v !== undefined);
+      const last10HoleScores = holeScores.slice(-10);
+      const avg = holeScores.length ? holeScores.reduce((a, b) => a + b, 0) / holeScores.length : null;
+      const avg10 = last10HoleScores.length ? last10HoleScores.reduce((a, b) => a + b, 0) / last10HoleScores.length : null;
+      const birdies = holeScores.filter(v => v < PAR).length;
+      const bogeys = holeScores.filter(v => v > PAR).length;
+      let currentBogeyFreeStreak = 0;
+      for (let i = rounds.length - 1; i >= 0; i--) {
+        const score = rounds[i].scores[pid][holeIdx];
+        if (score === null || score === undefined || score > PAR) break;
+        currentBogeyFreeStreak++;
+      }
+      return {
+        avg,
+        avg10,
+        birdiePct: holeScores.length ? (birdies / holeScores.length) * 100 : null,
+        bogeyPct: holeScores.length ? (bogeys / holeScores.length) * 100 : null,
+        bogeyFreeHoleStreak: currentBogeyFreeStreak
+      };
+    }
+
+    function getBestBogeyFreeStreak(pid) {
+      const rounds = getPlayerRounds(pid);
+      let best = 0;
+      let current = 0;
+      rounds.forEach(r => {
+        r.scores[pid].forEach(score => {
+          if (score <= PAR) {
+            current++;
+            if (current > best) best = current;
+          } else {
+            current = 0;
+          }
+        });
+      });
+      return best;
+    }
+
+    function getCurrentBogeyFreeStreak(pid) {
+      const rounds = getPlayerRounds(pid);
+      if (!rounds.length) return 0;
+      const allScores = [];
+      rounds.forEach(r => {
+        r.scores[pid].forEach(score => {
+          if (score !== null && score !== undefined) allScores.push(score);
+        });
+      });
+      let streak = 0;
+      for (let i = allScores.length - 1; i >= 0; i--) {
+        if (allScores[i] <= PAR) streak++;
+        else break;
+      }
+      return streak;
+    }
+
+    function getHoleDifficultyData(pid = "all") {
+      const holeStats = Array(HOLES).fill(null).map((_, i) => ({ hole: i + 1, name: HOLE_NAMES[i], scores: [] }));
+      appData.rounds.forEach(r => {
+        Object.keys(r.scores).forEach(playerId => {
+          if (pid !== "all" && playerId !== pid) return;
+          r.scores[playerId].forEach((score, i) => {
+            if (score !== null) holeStats[i].scores.push(score);
+          });
+        });
+      });
+      const data = holeStats.map(h => {
+        const avg = h.scores.length ? h.scores.reduce((a, b) => a + b, 0) / h.scores.length : null;
+        const diff = avg === null ? null : avg - PAR;
+        return { ...h, avg, diff };
+      });
+      const ranked = data.filter(h => h.diff !== null).slice().sort((a, b) => b.diff - a.diff);
+      const handicapMap = {};
+      ranked.forEach((h, idx) => { handicapMap[h.hole] = idx + 1; });
+      data.forEach(h => { h.handicap = handicapMap[h.hole] || null; });
+      return data;
+    }
+
     function renderPlayers() {
       const ul = document.getElementById("playersList");
       if (!appData.players.length) {
@@ -680,9 +728,13 @@
       `).join("");
     }
 
-    /* =========================
-       SAVE BUTTON STATE
-       ========================= */
+    function updateCourseFilterOptions() {
+      const select = document.getElementById("courseFilter");
+      const current = select.value || "all";
+      select.innerHTML = `<option value="all">Everyone</option>${appData.players.map(p => `<option value="${p.id}">${p.name}</option>`).join("")}`;
+      if ([...select.options].some(o => o.value === current)) select.value = current;
+    }
+
     function updateSaveButtonState() {
       const btn = document.getElementById("btnFinishRoundBottom");
       if (!currentRound) {
@@ -690,67 +742,65 @@
         btn.style.opacity = "0.4";
         return;
       }
-      const allFilled = currentRound.playerIds.every(pid =>
-        currentRound.scores[pid].every(s => s !== null)
-      );
+      const allFilled = currentRound.playerIds.every(pid => currentRound.scores[pid].every(s => s !== null));
       btn.disabled = !allFilled;
       btn.style.opacity = allFilled ? "1" : "0.4";
     }
 
-    /* =========================
-       ROUND RENDERING
-       ========================= */
     function renderRound() {
       if (!currentRound) return;
-
       const h = currentRound.currentHole;
       const hIndex = h - 1;
-
+      const difficulty = getHoleDifficultyData("all");
+      const holeHcp = difficulty[hIndex]?.handicap || "-";
       const roundHoleLabel = document.getElementById("roundHoleLabel");
       const holeTitle = document.getElementById("holeTitle");
       const banner = document.getElementById("roundScoreBanner");
       const container = document.getElementById("scoreButtonsContainer");
-
-      roundHoleLabel.textContent = `Hole ${h}/${HOLES}`;
+      roundHoleLabel.textContent = `Hole ${h}/${HOLES} · HCP ${holeHcp}`;
       const courseName = h <= 10 ? "Barred Owl" : "Great Horned Owl";
-      holeTitle.textContent = `${courseName} · ${HOLE_NAMES[h-1]} (Par ${PAR}) — ${HOLE_DESCRIPTIONS[h-1]}`;
-
+      holeTitle.textContent = `${courseName} · ${HOLE_NAMES[h - 1]} (Par ${PAR}) — ${HOLE_DESCRIPTIONS[h - 1]}`;
       let bannerHtml = "";
       currentRound.playerIds.forEach(pid => {
         const scores = currentRound.scores[pid];
         const played = scores.filter(v => v !== null);
-        const total = played.reduce((a,b)=>a+b,0);
+        const total = played.reduce((a, b) => a + b, 0);
         const diff = played.length ? total - played.length * PAR : 0;
         bannerHtml += `<div>${getPlayer(pid).name}: ${total || 0} (${fmtDiff(diff)})</div>`;
       });
       banner.innerHTML = bannerHtml || "No scores yet.";
-
       container.innerHTML = "";
       currentRound.playerIds.forEach(pid => {
         const row = document.createElement("div");
         row.className = "player-row";
-
-        const label = document.createElement("div");
-        label.textContent = getPlayer(pid).name;
-        row.appendChild(label);
-
+        const stats = getHoleStatsForPlayer(pid, hIndex);
+        const header = document.createElement("div");
+        header.className = "player-header-row";
+        header.innerHTML = `<strong>${getPlayer(pid).name}</strong>`;
+        row.appendChild(header);
+        const statsDiv = document.createElement("div");
+        statsDiv.className = "player-hole-stats";
+        statsDiv.innerHTML = `
+          <div>Avg: ${stats.avg !== null ? stats.avg.toFixed(2) : "-"}</div>
+          <div>Last 10: ${stats.avg10 !== null ? stats.avg10.toFixed(2) : "-"}</div>
+          <div>Hole streak: ${stats.bogeyFreeHoleStreak}</div>
+          <div>Current streak: ${getCurrentBogeyFreeStreak(pid)}</div>
+          <div>Birdie %: ${stats.birdiePct !== null ? stats.birdiePct.toFixed(0) + "%" : "-"}</div>
+          <div>Bogey %: ${stats.bogeyPct !== null ? stats.bogeyPct.toFixed(0) + "%" : "-"}</div>
+        `;
+        row.appendChild(statsDiv);
         const btnRow = document.createElement("div");
         btnRow.className = "score-buttons";
-
-        [1,2,3,4,5].forEach(num => {
+        [1, 2, 3, 4, 5].forEach(num => {
           const btn = document.createElement("button");
           btn.textContent = num;
           if (currentRound.scores[pid][hIndex] === num) btn.classList.add("selected");
-
           btn.onclick = () => {
             currentRound.scores[pid][hIndex] = num;
             renderRound();
             updateSaveButtonState();
             renderScorecard();
-
-            const allPlayersScored = currentRound.playerIds.every(pid2 =>
-              currentRound.scores[pid2][hIndex] !== null
-            );
+            const allPlayersScored = currentRound.playerIds.every(pid2 => currentRound.scores[pid2][hIndex] !== null);
             if (allPlayersScored && currentRound.currentHole < HOLES) {
               setTimeout(() => {
                 currentRound.currentHole++;
@@ -760,67 +810,51 @@
               }, 300);
             }
           };
-
           btnRow.appendChild(btn);
         });
-
         row.appendChild(btnRow);
         container.appendChild(row);
       });
-
       container.classList.add("fade-in");
       setTimeout(() => container.classList.remove("fade-in"), 250);
-
       updateSaveButtonState();
     }
 
-    /* =========================
-       SCORECARD (LANDSCAPE)
-       ========================= */
     function renderScorecard() {
       if (!currentRound) return;
       const container = document.getElementById("scorecardTableContainer");
       if (!container) return;
-
       container.innerHTML = "";
       const table = document.createElement("table");
-
       let headerHtml = "<tr><th>Player</th>";
       for (let i = 1; i <= HOLES; i++) headerHtml += `<th>${i}</th>`;
       headerHtml += "<th>Total</th><th>±</th></tr>";
       table.innerHTML = headerHtml;
-
       currentRound.playerIds.forEach(pid => {
         const player = getPlayer(pid);
         const scores = currentRound.scores[pid];
         let rowHtml = `<tr><td>${player ? player.name : "Player"}</td>`;
-
         scores.forEach((s, idx) => {
           let cls = "scorecell";
           if (s === 1) cls += " ace";
           else if (s === 2) cls += " birdie";
           else if (s !== null && s > PAR) cls += " bogey";
-
           rowHtml += `<td class="${cls}" data-player="${pid}" data-hole="${idx}">${s ?? "-"}</td>`;
         });
-
         const playedScores = scores.filter(v => v !== null);
         const playedCount = playedScores.length;
         let displayTotal = "-";
         let displayDiff = "-";
-
         if (playedCount > 0) {
-          const partialTotal = playedScores.reduce((a,b)=>a+b,0);
+          const partialTotal = playedScores.reduce((a, b) => a + b, 0);
           const expectedPar = playedCount * PAR;
           const partialDiff = partialTotal - expectedPar;
           displayTotal = partialTotal;
           displayDiff = fmtDiff(partialDiff);
         }
-
         rowHtml += `<td>${displayTotal}</td><td>${displayDiff}</td></tr>`;
         table.innerHTML += rowHtml;
       });
-
       container.appendChild(table);
     }
 
@@ -829,115 +863,77 @@
       const isLandscape = window.innerWidth > window.innerHeight;
       const visibleSection = document.querySelector("main section:not(.hidden)");
       const currentId = visibleSection ? visibleSection.id : null;
-
       if (isLandscape) {
         if (currentId === "screen-round" || currentId === "screen-scorecard") {
           renderScorecard();
           showScreen("screen-scorecard");
         }
-      } else {
-        if (currentId === "screen-scorecard") {
-          showScreen("screen-round");
-        }
+      } else if (currentId === "screen-scorecard") {
+        showScreen("screen-round");
       }
     }
 
-    /* =========================
-       FINALIZE ROUND
-       ========================= */
     async function finalizeRound() {
       if (!currentRound) return;
-
-      const allFilled = currentRound.playerIds.every(pid =>
-        currentRound.scores[pid].every(s => s !== null)
-      );
+      const allFilled = currentRound.playerIds.every(pid => currentRound.scores[pid].every(s => s !== null));
       if (!allFilled) {
         alert("Please enter a score for every hole for every player.");
         return;
       }
-
       if (editModeRoundId) {
         const idx = appData.rounds.findIndex(r => r.id === editModeRoundId);
         if (idx >= 0) appData.rounds[idx] = currentRound;
       } else {
         appData.rounds.push(currentRound);
       }
-
       saveLocal();
       await saveToFirebase();
-
       renderSummary(currentRound);
       currentRound = null;
       editModeRoundId = null;
       showScreen("screen-summary");
     }
 
-    /* =========================
-       SUMMARY
-       ========================= */
     function renderSummary(round) {
       const div = document.getElementById("summaryContent");
       const date = new Date(round.date).toLocaleString();
       let html = `<div><strong>${date}</strong></div>`;
-
       let bestDiff = null;
       let winners = [];
-
       round.playerIds.forEach(pid => {
         const scores = round.scores[pid];
-        const total = scores.reduce((a,b)=>a+b,0);
+        const total = scores.reduce((a, b) => a + b, 0);
         const diff = total - COURSE_PAR;
-
         if (bestDiff === null || diff < bestDiff) {
           bestDiff = diff;
           winners = [getPlayer(pid).name];
         } else if (diff === bestDiff) {
           winners.push(getPlayer(pid).name);
         }
-
-        const front = scores.slice(0,10).reduce((a,b)=>a+b,0);
-        const back  = scores.slice(10).reduce((a,b)=>a+b,0);
-
-        html += `
-          <div style="margin-top:6px;">
-            <strong>${getPlayer(pid).name}</strong>: ${total} (${fmtDiff(diff)})<br>
-            Front (Barred Owl): ${front} · Back (Great Horned): ${back}
-          </div>
-        `;
+        const front = scores.slice(0, 10).reduce((a, b) => a + b, 0);
+        const back = scores.slice(10).reduce((a, b) => a + b, 0);
+        html += `<div style="margin-top:6px;"><strong>${getPlayer(pid).name}</strong>: ${total} (${fmtDiff(diff)})<br>Front (Barred Owl): ${front} · Back (Great Horned): ${back}</div>`;
       });
-
       html += `<div style="margin-top:10px;">🏆 Winner: ${winners.join(", ")}</div>`;
       div.innerHTML = html;
     }
 
-    /* =========================
-       HISTORY
-       ========================= */
     function renderHistory() {
       const div = document.getElementById("historyContent");
       if (!appData.rounds.length) {
         div.innerHTML = "<p>No rounds yet.</p>";
         return;
       }
-
       div.innerHTML = appData.rounds.slice().reverse().map(r => {
         const date = new Date(r.date).toLocaleString();
         let playersHtml = "";
         Object.keys(r.scores).forEach(pid => {
           const scores = r.scores[pid];
-          const total = scores.reduce((a,b)=>a+b,0);
+          const total = scores.reduce((a, b) => a + b, 0);
           const diff = total - COURSE_PAR;
           playersHtml += `${getPlayer(pid)?.name ?? "Player"}: ${total} (${fmtDiff(diff)})<br>`;
         });
-
-        return `
-          <div class="history-card">
-            <strong>${date}</strong><br>
-            ${playersHtml}
-            <button class="btn-small" onclick="editRound('${r.id}')">Edit</button>
-            <button class="btn-small btn-secondary" onclick="deleteRound('${r.id}')">Delete</button>
-          </div>
-        `;
+        return `<div class="history-card"><strong>${date}</strong><br>${playersHtml}<button class="btn-small" onclick="editRound('${r.id}')">Edit</button><button class="btn-small btn-secondary" onclick="deleteRound('${r.id}')">Delete</button></div>`;
       }).join("");
     }
 
@@ -959,35 +955,26 @@
       showScreen("screen-round");
     };
 
-    /* =========================
-       PLAYER ANALYTICS
-       ========================= */
     function computeAnalytics(pid) {
       const rounds = getPlayerRounds(pid);
       if (!rounds.length) return null;
-
       const totals = [];
       const frontTotals = [];
       const backTotals = [];
       let totalCareerPutts = 0;
-
       rounds.forEach(r => {
         const scores = r.scores[pid];
         const front = scores.slice(0, 10).reduce((a, b) => a + b, 0);
-        const back  = scores.slice(10).reduce((a, b) => a + b, 0);
+        const back = scores.slice(10).reduce((a, b) => a + b, 0);
         const total = front + back;
-
         frontTotals.push(front);
         backTotals.push(back);
         totals.push(total);
-
         totalCareerPutts += total;
       });
-
       const avgTotal = totals.reduce((a, b) => a + b, 0) / totals.length;
       const avgFront = frontTotals.reduce((a, b) => a + b, 0) / frontTotals.length;
-      const avgBack  = backTotals.reduce((a, b) => a + b, 0) / backTotals.length;
-
+      const avgBack = backTotals.reduce((a, b) => a + b, 0) / backTotals.length;
       return {
         rounds: rounds.length,
         avg: Number(avgTotal.toFixed(1)),
@@ -996,7 +983,9 @@
         best: Math.min(...totals),
         worst: Math.max(...totals),
         handicap: computeHandicap(pid),
-        totalPutts: totalCareerPutts
+        totalPutts: totalCareerPutts,
+        bestBogeyFreeStreak: getBestBogeyFreeStreak(pid),
+        currentBogeyFreeStreak: getCurrentBogeyFreeStreak(pid)
       };
     }
 
@@ -1006,26 +995,19 @@
         ul.innerHTML = "<li>No players yet.</li>";
         return;
       }
-      ul.innerHTML = appData.players.map(p => `
-        <li style="padding:6px 0;cursor:pointer;" onclick="showAnalytics('${p.id}')">
-          ${p.name}
-        </li>
-      `).join("");
+      ul.innerHTML = appData.players.map(p => `<li style="padding:6px 0;cursor:pointer;" onclick="showAnalytics('${p.id}')">${p.name}</li>`).join("");
     }
 
     window.showAnalytics = function(pid) {
       const info = computeAnalytics(pid);
       const div = document.getElementById("analyticsResults");
       const canvas = document.getElementById("handicapChart");
-
       if (!info) {
         div.innerHTML = "<p>No rounds yet for this player.</p>";
         canvas.style.display = "none";
         return;
       }
-
       const hcText = info.handicap > 0 ? `+${info.handicap.toFixed(1)}` : info.handicap.toFixed(1);
-
       div.innerHTML = `
         <p><strong>${getPlayer(pid).name}</strong></p>
         <p>Rounds Played: ${info.rounds}</p>
@@ -1036,191 +1018,72 @@
         <p>Best Round: ${info.best}</p>
         <p>Worst Round: ${info.worst}</p>
         <p>Handicap: ${hcText}</p>
+        <p>Best Bogey-Free Streak: ${info.bestBogeyFreeStreak} holes</p>
+        <p>Current Bogey-Free Streak: ${info.currentBogeyFreeStreak} holes</p>
       `;
-
       const timeline = getHandicapTimeline(pid);
       if (!timeline.length) {
         canvas.style.display = "none";
         return;
       }
-
       canvas.style.display = "block";
-
       const labels = timeline.map(t => t.date.toLocaleDateString());
       const data = timeline.map(t => t.handicap);
-
       if (handicapChartInstance) handicapChartInstance.destroy();
-
       handicapChartInstance = new Chart(canvas, {
         type: "line",
-        data: {
-          labels,
-          datasets: [{
-            label: "Handicap",
-            data,
-            borderWidth: 3,
-            tension: 0.3,
-            pointRadius: 3
-          }]
-        },
-        options: {
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: false } }
-        }
+        data: { labels, datasets: [{ label: "Handicap", data, borderWidth: 3, tension: 0.3, pointRadius: 3 }] },
+        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false } } }
       });
     };
 
-    /* =========================
-       LEADERBOARDS
-       ========================= */
     function generateLeaderboards() {
       const rounds = appData.rounds;
       const results = [];
-
       rounds.forEach(r => {
         Object.keys(r.scores).forEach(pid => {
           const player = getPlayer(pid)?.name ?? "Player";
           const scores = r.scores[pid];
-          const total = scores.reduce((a,b)=>a+b,0);
+          const total = scores.reduce((a, b) => a + b, 0);
           const diffTotal = total - COURSE_PAR;
-          const front = scores.slice(0,10).reduce((a,b)=>a+b,0);
-          const diffFront = front - (10*PAR);
-          const back = scores.slice(10).reduce((a,b)=>a+b,0);
-          const diffBack = back - (10*PAR);
-
-          results.push({
-            player,
-            date: new Date(r.date),
-            total, diffTotal,
-            front, diffFront,
-            back, diffBack
-          });
+          const front = scores.slice(0, 10).reduce((a, b) => a + b, 0);
+          const diffFront = front - (10 * PAR);
+          const back = scores.slice(10).reduce((a, b) => a + b, 0);
+          const diffBack = back - (10 * PAR);
+          results.push({ player, date: new Date(r.date), total, diffTotal, front, diffFront, back, diffBack });
         });
       });
-
       return {
-        overall: results.slice().sort((a,b)=>a.total-b.total).slice(0,10),
-        barred:  results.slice().sort((a,b)=>a.front-b.front).slice(0,10),
-        horned:  results.slice().sort((a,b)=>a.back-b.back).slice(0,10)
+        overall: results.slice().sort((a, b) => a.total - b.total).slice(0, 10),
+        barred: results.slice().sort((a, b) => a.front - b.front).slice(0, 10),
+        horned: results.slice().sort((a, b) => a.back - b.back).slice(0, 10)
       };
     }
 
     function renderLeaderboards() {
       const data = generateLeaderboards();
-
-      const overallDiv = document.getElementById("leaderboardOverall");
-      const barredDiv  = document.getElementById("leaderboardBarred");
-      const hornedDiv  = document.getElementById("leaderboardHorned");
-
-      overallDiv.innerHTML =
-        "<h3>🏆 Best Combined (20 holes)</h3>" +
-        (data.overall.length
-          ? "<ol>" + data.overall.map(r =>
-              `<li>${r.player}: ${r.total} (${fmtDiff(r.diffTotal)}) — ${r.date.toLocaleDateString()}</li>`
-            ).join("") + "</ol>"
-          : "<p>No rounds yet.</p>");
-
-      barredDiv.innerHTML =
-        "<h3>🦅 Barred Owl (Front 10)</h3>" +
-        (data.barred.length
-          ? "<ol>" + data.barred.map(r =>
-              `<li>${r.player}: ${r.front} (${fmtDiff(r.diffFront)}) — ${r.date.toLocaleDateString()}</li>`
-            ).join("") + "</ol>"
-          : "<p>No rounds yet.</p>");
-
-      hornedDiv.innerHTML =
-        "<h3>🦉 Great Horned (Back 10)</h3>" +
-        (data.horned.length
-          ? "<ol>" + data.horned.map(r =>
-              `<li>${r.player}: ${r.back} (${fmtDiff(r.diffBack)}) — ${r.date.toLocaleDateString()}</li>`
-            ).join("") + "</ol>"
-          : "<p>No rounds yet.</p>");
+      document.getElementById("leaderboardOverall").innerHTML = "<h3>🏆 Best Combined (20 holes)</h3>" + (data.overall.length ? "<ol>" + data.overall.map(r => `<li>${r.player}: ${r.total} (${fmtDiff(r.diffTotal)}) — ${r.date.toLocaleDateString()}</li>`).join("") + "</ol>" : "<p>No rounds yet.</p>");
+      document.getElementById("leaderboardBarred").innerHTML = "<h3>🦅 Barred Owl (Front 10)</h3>" + (data.barred.length ? "<ol>" + data.barred.map(r => `<li>${r.player}: ${r.front} (${fmtDiff(r.diffFront)}) — ${r.date.toLocaleDateString()}</li>`).join("") + "</ol>" : "<p>No rounds yet.</p>");
+      document.getElementById("leaderboardHorned").innerHTML = "<h3>🦉 Great Horned (Back 10)</h3>" + (data.horned.length ? "<ol>" + data.horned.map(r => `<li>${r.player}: ${r.back} (${fmtDiff(r.diffBack)}) — ${r.date.toLocaleDateString()}</li>`).join("") + "</ol>" : "<p>No rounds yet.</p>");
     }
 
-    /* =========================
-       COURSE ANALYTICS
-       ========================= */
     function renderCourseAnalytics() {
       const container = document.getElementById("courseAnalyticsContainer");
-      const canvas = document.getElementById("courseAnalyticsChart");
       const filter = document.getElementById("courseFilter")?.value || "all";
-
       container.innerHTML = "";
-
       if (!appData.rounds.length) {
         container.innerHTML = "<p>No rounds recorded yet.</p>";
-        if (courseAnalyticsChart) courseAnalyticsChart.destroy();
         return;
       }
-
-      const holeStats = Array(HOLES).fill(null).map((_, i) => ({
-        hole: i + 1,
-        name: HOLE_NAMES[i],
-        scores: []
-      }));
-
-      appData.rounds.forEach(r => {
-        Object.keys(r.scores).forEach(pid => {
-          const player = getPlayer(pid);
-          const isMike = player && player.name.toLowerCase() === "mike";
-
-          if (filter === "me" && !isMike) return;
-          if (filter === "others" && isMike) return;
-
-          r.scores[pid].forEach((score, i) => {
-            if (score !== null) holeStats[i].scores.push(score);
-          });
-        });
-      });
-
-      const difficultyData = holeStats.map(h => {
-        if (!h.scores.length) return { ...h, avg: null, diff: null };
-        const avg = h.scores.reduce((a,b)=>a+b,0) / h.scores.length;
-        return { ...h, avg, diff: avg - PAR };
-      });
-
-      difficultyData.sort((a,b)=>(b.diff ?? -999) - (a.diff ?? -999));
-
-      let html = "<table><tr><th>#</th><th>Hole</th><th>Avg</th><th>Δ</th></tr>";
+      const difficultyData = getHoleDifficultyData(filter).slice().sort((a, b) => (b.diff ?? -999) - (a.diff ?? -999));
+      let html = "<table><tr><th>Rank</th><th>#</th><th>Hole</th><th>Avg</th><th>Δ</th><th>HCP</th></tr>";
       difficultyData.forEach((h, idx) => {
-        html += `<tr>
-          <td>${idx+1}</td>
-          <td>${h.name}</td>
-          <td>${h.avg !== null ? h.avg.toFixed(2) : "-"}</td>
-          <td>${h.diff !== null ? fmtDiff(h.diff) : "-"}</td>
-        </tr>`;
+        html += `<tr><td>${idx + 1}</td><td>${h.hole}</td><td>${h.name}</td><td>${h.avg !== null ? h.avg.toFixed(2) : "-"}</td><td>${h.diff !== null ? fmtDiff(h.diff) : "-"}</td><td>${h.handicap ?? "-"}</td></tr>`;
       });
       html += "</table>";
       container.innerHTML = html;
-
-      const labels = difficultyData.map(h => `H${h.hole}`);
-      const values = difficultyData.map(h => h.diff ?? 0);
-
-      if (courseAnalyticsChart) courseAnalyticsChart.destroy();
-
-      // NOTE: you had custom colors here; leaving it alone might be fine,
-      // but to keep your existing behavior I’ll preserve it.
-      courseAnalyticsChart = new Chart(canvas, {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            data: values,
-            backgroundColor: values.map(v =>
-              v > 0.5 ? "#ff6b6b" : v > 0 ? "#ffd93b" : "#7dd87d"
-            )
-          }]
-        },
-        options: {
-          plugins: { legend: { display: false } },
-          scales: { y: { title: { display: true, text: "Avg vs Par (Strokes)" } } }
-        }
-      });
     }
 
-    /* =========================
-       EXPORT / IMPORT
-       ========================= */
     function exportCSV() {
       if (!appData.rounds.length) {
         alert("No rounds to export yet.");
@@ -1231,7 +1094,7 @@
         Object.keys(r.scores).forEach(pid => {
           const player = getPlayer(pid)?.name ?? "Player";
           r.scores[pid].forEach((score, idx) => {
-            rows.push(`${r.date},${player},${idx+1},${score}`);
+            rows.push(`${r.date},${player},${idx + 1},${score}`);
           });
         });
       });
@@ -1269,6 +1132,7 @@
           await saveToFirebase();
           alert("Backup restored successfully!");
           renderPlayers();
+          updateCourseFilterOptions();
           showScreen("screen-home");
         } catch (e) {
           console.error(e);
@@ -1278,13 +1142,17 @@
       reader.readAsText(file);
     }
 
-    /* =========================
-       INIT & BUTTON WIRING
-       ========================= */
-    document.addEventListener("change", (e) => {
-      if (e.target && e.target.id === "courseFilter") {
-        renderCourseAnalytics();
-      }
+    function preventDoubleTapZoom() {
+      let lastTouchEnd = 0;
+      document.addEventListener("touchend", e => {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) e.preventDefault();
+        lastTouchEnd = now;
+      }, { passive: false });
+    }
+
+    document.addEventListener("change", e => {
+      if (e.target && e.target.id === "courseFilter") renderCourseAnalytics();
     });
 
     function initButtons() {
@@ -1311,26 +1179,19 @@
         showScreen("screen-leaderboards");
       };
       document.getElementById("btnHomeCourseAnalytics").onclick = () => {
+        updateCourseFilterOptions();
         renderCourseAnalytics();
         showScreen("screen-course-analytics");
       };
-      document.getElementById("btnHomeCourseMap").onclick = () => {
-        showScreen("screen-course-map");
-      };
-
+      document.getElementById("btnHomeCourseMap").onclick = () => showScreen("screen-course-map");
       document.getElementById("btnBackFromCourseMap").onclick = () => showScreen("screen-home");
-
       document.getElementById("btnHomeExport").onclick = exportCSV;
       document.getElementById("btnExportJSON").onclick = exportBackupJSON;
-
-      document.getElementById("btnImportBackup").onclick = () => {
-        document.getElementById("backupFileInput").click();
-      };
+      document.getElementById("btnImportBackup").onclick = () => document.getElementById("backupFileInput").click();
       document.getElementById("backupFileInput").onchange = e => {
         const file = e.target.files[0];
         if (file) importBackupJSON(file);
       };
-
       document.getElementById("btnAddPlayer").onclick = async () => {
         const input = document.getElementById("playerNameInput");
         const name = input.value.trim();
@@ -1340,34 +1201,26 @@
         saveLocal();
         await saveToFirebase();
         renderPlayers();
+        updateCourseFilterOptions();
       };
-
       document.getElementById("btnBackFromPlayers").onclick = () => showScreen("screen-home");
       document.getElementById("btnBackFromSelect").onclick = () => showScreen("screen-home");
       document.getElementById("btnBackFromHistory").onclick = () => showScreen("screen-home");
       document.getElementById("btnBackFromAnalytics").onclick = () => showScreen("screen-home");
       document.getElementById("btnBackFromLeaderboards").onclick = () => showScreen("screen-home");
       document.getElementById("btnBackFromCourseAnalytics").onclick = () => showScreen("screen-home");
-
       document.getElementById("btnStartRoundFromSelection").onclick = () => {
         const ids = [...document.querySelectorAll("#playerSelectList input:checked")].map(cb => cb.value);
         if (!ids.length) {
           alert("Select at least one player.");
           return;
         }
-        currentRound = {
-          id: "r_" + Date.now(),
-          date: new Date().toISOString(),
-          playerIds: ids.slice(),
-          currentHole: 1,
-          scores: Object.fromEntries(ids.map(id => [id, Array(HOLES).fill(null)]))
-        };
+        currentRound = { id: "r_" + Date.now(), date: new Date().toISOString(), playerIds: ids.slice(), currentHole: 1, scores: Object.fromEntries(ids.map(id => [id, Array(HOLES).fill(null)])) };
         editModeRoundId = null;
         renderRound();
         handleOrientation();
         showScreen("screen-round");
       };
-
       document.getElementById("btnPrevHole").onclick = () => {
         if (!currentRound) return;
         currentRound.currentHole = Math.max(1, currentRound.currentHole - 1);
@@ -1380,9 +1233,7 @@
         renderRound();
         renderScorecard();
       };
-
       document.getElementById("btnFinishRoundBottom").onclick = finalizeRound;
-
       document.getElementById("btnBackFromRound").onclick = () => {
         if (confirm("Cancel this round? Unsaved changes will be lost.")) {
           currentRound = null;
@@ -1390,38 +1241,27 @@
           showScreen("screen-home");
         }
       };
-
       document.getElementById("btnSummaryDone").onclick = () => showScreen("screen-home");
-
-      document.addEventListener("click", (e) => {
-        if (!currentRound) return;
-        if (!e.target.classList.contains("scorecell")) return;
-
+      document.addEventListener("click", e => {
+        if (!currentRound || !e.target.classList.contains("scorecell")) return;
         const pid = e.target.dataset.player;
         const holeIdx = parseInt(e.target.dataset.hole, 10);
         if (!pid || Number.isNaN(holeIdx)) return;
-
         const existing = currentRound.scores[pid][holeIdx];
-        const input = prompt(
-          `Score for ${getPlayer(pid)?.name || "Player"} on Hole ${holeIdx + 1}:`,
-          existing ?? ""
-        );
+        const input = prompt(`Score for ${getPlayer(pid)?.name || "Player"} on Hole ${holeIdx + 1}:`, existing ?? "");
         if (input === null) return;
-
         const val = parseInt(input, 10);
         if (!Number.isInteger(val) || val < 1 || val > 10) return;
-
         currentRound.scores[pid][holeIdx] = val;
         renderScorecard();
         renderRound();
         updateSaveButtonState();
       });
-
       let touchStartX = 0;
       document.addEventListener("touchstart", e => {
         if (!e.changedTouches || !e.changedTouches.length) return;
         touchStartX = e.changedTouches[0].screenX;
-      });
+      }, { passive: true });
       document.addEventListener("touchend", e => {
         if (!currentRound || !e.changedTouches || !e.changedTouches.length) return;
         const dx = e.changedTouches[0].screenX - touchStartX;
@@ -1434,20 +1274,18 @@
           renderRound();
           renderScorecard();
         }
-      });
-
+      }, { passive: true });
       window.addEventListener("orientationchange", handleOrientation);
       window.addEventListener("resize", handleOrientation);
     }
 
-    /* =========================
-       APP INIT
-       ========================= */
     initAccessGate();
     loadLocal();
     renderPlayers();
+    updateCourseFilterOptions();
     showScreen("screen-home");
     initButtons();
+    preventDoubleTapZoom();
     initFirebase();
   </script>
 </body>
