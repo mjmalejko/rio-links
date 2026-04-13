@@ -161,10 +161,18 @@
       color: #555;
     }
     .player-header-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .inline-stats{
+      font-size:0.72rem;
+      color:#555;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
     }
 
     .score-buttons button {
@@ -778,17 +786,17 @@
         header.className = "player-header-row";
         header.innerHTML = `<strong>${getPlayer(pid).name}</strong>`;
         row.appendChild(header);
-        const statsDiv = document.createElement("div");
-        statsDiv.className = "player-hole-stats";
-        statsDiv.innerHTML = `
-          <div>Avg: ${stats.avg !== null ? stats.avg.toFixed(2) : "-"}</div>
-          <div>Last 10: ${stats.avg10 !== null ? stats.avg10.toFixed(2) : "-"}</div>
-          <div>Hole streak: ${stats.bogeyFreeHoleStreak}</div>
-          <div>Current streak: ${getCurrentBogeyFreeStreak(pid)}</div>
-          <div>Birdie %: ${stats.birdiePct !== null ? stats.birdiePct.toFixed(0) + "%" : "-"}</div>
-          <div>Bogey %: ${stats.bogeyPct !== null ? stats.bogeyPct.toFixed(0) + "%" : "-"}</div>
+        const statsInline = document.createElement("div");
+        statsInline.className = "inline-stats";
+        statsInline.innerHTML = `
+          Avg:${stats.avg !== null ? stats.avg.toFixed(2) : "-"} |
+          L10:${stats.avg10 !== null ? stats.avg10.toFixed(2) : "-"} |
+          HoleStreak:${stats.bogeyFreeHoleStreak} |
+          CurrStreak:${getCurrentBogeyFreeStreak(pid)} |
+          Birdie%:${stats.birdiePct !== null ? stats.birdiePct.toFixed(1) + "%" : "-"} |
+          Bogey%:${stats.bogeyPct !== null ? stats.bogeyPct.toFixed(1) + "%" : "-"}
         `;
-        row.appendChild(statsDiv);
+        header.appendChild(statsInline);
         const btnRow = document.createElement("div");
         btnRow.className = "score-buttons";
         [1, 2, 3, 4, 5].forEach(num => {
