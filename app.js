@@ -627,9 +627,44 @@ const PAR = 2;
         });
       });
       return {
-        overall: results.slice().sort((a, b) => a.total - b.total).slice(0, 10),
-        barred: results.slice().sort((a, b) => a.front - b.front).slice(0, 10),
-        horned: results.slice().sort((a, b) => a.back - b.back).slice(0, 10)
+       function getTopWithTies(arr, key, limit = 15) {
+  const sorted = arr.slice().sort((a, b) => a[key] - b[key]);
+  if (sorted.length <= limit) return sorted;
+
+  const cutoffValue = sorted[limit - 1][key];
+
+  return sorted.filter(item => item[key] <= cutoffValue);
+}
+
+function generateLeaderboards() {
+  const results = [];
+
+  appData.rounds.forEach(r => {
+    Object.keys(r.scores).forEach(pid => {
+      const scores = r.scores[pid];
+      const total = scores.reduce((a,b) => a+b, 0);
+      const front = scores.slice(0, 10).reduce((a,b) => a+b, 0);
+      const back = scores.slice(10).reduce((a,b) => a+b, 0);
+
+      results.push({
+        player: getPlayer(pid)?.name ?? "Player",
+        date: new Date(r.date),
+        total,
+        diffTotal: total - COURSE_PAR,
+        front,
+        diffFront: front - (10 * PAR),
+        back,
+        diffBack: back - (10 * PAR)
+      });
+    });
+  });
+
+  return {
+    overall: getTopWithTies(results, "total", 15),
+    barred: getTopWithTies(results, "front", 15),
+    horned: getTopWithTies(results, "back", 15)
+  };
+}
       };
     }
 
