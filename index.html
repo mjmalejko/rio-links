@@ -19,7 +19,6 @@
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <!-- Firebase compat -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
@@ -120,10 +119,7 @@
       <section id="screen-summary" class="hidden">
         <div class="section-title">Round Summary</div>
         <img id="summaryStamp" src="my-golf.jpg" alt="Course Logo">
-        <div id="summaryCard" class="summary-card">
-          <div id="summaryContent"></div>
-        </div>
-        <button class="btn" id="btnShareScorecard">Share Scorecard</button>
+        <div id="summaryContent"></div>
         <button class="btn" id="btnSummaryDone">Back to Home</button>
       </section>
 
@@ -178,184 +174,7 @@
     </footer>
   </div>
 
-  <script>
-    const PAR = 2;
-    const HOLES = 20;
-    const COURSE_PAR = PAR * HOLES;
-    const STORAGE_KEY = "backyard-putting_v1";
+    <script src="app.js"></script>
 
-    const HOLE_NAMES = [
-      "First Flight", "Arrow Line", "Hunter’s Hook", "Rising Edge", "Gravity Glide",
-      "Climbing Turn", "The Drop Point", "Gauntlet Ridge", "Perch Line", "Switchback",
-      "Moon Curve", "The Ascent", "Silent Path", "Hollow Ridge", "The Horseshoe",
-      "Reverse Shoe", "Second Ridge", "True North", "Slope Run", "Home Roost"
-    ];
-
-    const HOLE_DESCRIPTIONS = [
-      "Flag 1 to 2", "Flag 2 to 3", "Flag 3 to 4", "Flag 4 to 5", "Flag 5 to 1",
-      "Flag 1 to 5", "Flag 5 to 4", "Flag 4 to 3", "Flag 3 to 2", "Flag 2 to 1",
-      "Flag 1 to 4", "Flag 4 to 2", "Flag 2 to 3", "Flag 3 to 5", "Flag 5 to 2",
-      "Flag 2 to 5", "Flag 5 to 3", "Flag 3 to 2", "Flag 2 to 4", "Flag 4 to 1"
-    ];
-
-    function fmtDiff(n) {
-      const num = Number(n);
-      if (Number.isNaN(num)) return "-";
-      if (num > 0) return `+${num.toFixed ? num.toFixed(1) : num}`;
-      if (num === 0) return "E";
-      return `${num.toFixed ? num.toFixed(1) : num}`;
-    }
-
-    const FAMILY_ACCESS_CODE = "1989";
-
-    function initAccessGate() {
-      const gate = document.getElementById("accessGate");
-      const btn = document.getElementById("accessOpenBtn");
-      const error = document.getElementById("accessError");
-      const boxes = Array.from(document.querySelectorAll(".codeBox"));
-      const readCode = () => boxes.map(b => b.value).join("");
-      boxes[0]?.focus();
-      boxes.forEach((box, i) => {
-        box.addEventListener("input", () => {
-          box.value = (box.value || "").replace(/[^0-9]/g, "").slice(0, 1);
-          if (box.value && i < boxes.length - 1) boxes[i + 1].focus();
-        });
-        box.addEventListener("keydown", e => {
-          if (e.key === "Backspace" && !box.value && i > 0) boxes[i - 1].focus();
-          if (e.key === "Enter") btn.click();
-        });
-      });
-      btn.onclick = () => {
-        if (readCode() === FAMILY_ACCESS_CODE) {
-          gate.style.display = "none";
-        } else {
-          error.style.display = "block";
-          boxes.forEach(b => (b.value = ""));
-          boxes[0]?.focus();
-        }
-      };
-    }
-
-    let appData = { players: [], rounds: [] };
-    let currentRound = null;
-    let editModeRoundId = null;
-    let handicapChartInstance = null;
-    let db = null;
-    let expandedPlayerStats = {};
-
-    function loadLocal() {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        try { appData = JSON.parse(raw); } catch (e) { console.error("Error parsing local storage:", e); }
-      }
-      if (!appData.players) appData.players = [];
-      if (!appData.rounds) appData.rounds = [];
-    }
-
-    function saveLocal() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
-    }
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCX9C7uy5JNklprp3tZeKV3tPGr410ix28",
-      authDomain: "rio-links.firebaseapp.com",
-      projectId: "rio-links",
-      storageBucket: "rio-links.firebasestorage.app",
-      messagingSenderId: "260295353704",
-      appId: "1:260295353704:web:8700c3a72ccf786d1762dd",
-      measurementId: "G-6MVV3ZFT3T"
-    };
-
-    function initFirebase() {
-      try {
-        if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        firebase.auth().signInAnonymously().then(() => console.log("Firebase: anonymous session started")).catch(error => console.warn("Firebase anonymous auth failed", error));
-        db = firebase.firestore();
-        loadFromFirebase();
-      } catch (e) {
-        console.warn("Firebase init failed; app will run local-only:", e);
-      }
-    }
-
-    function getFamilyDocRef() {
-      if (!db) return null;
-      return db.collection("backyardPutting").doc("family-1");
-    }
-
-    async function loadFromFirebase() {
-      try {
-        const ref = getFamilyDocRef();
-        if (!ref) return;
-        const snap = await ref.get();
-        if (snap.exists) {
-          const data = snap.data();
-          if (data.players && data.rounds) {
-            appData = data;
-            saveLocal();
-            renderPlayers();
-          }
-        } else {
-          await ref.set(appData);
-        }
-      } catch (e) {
-        console.warn("Firebase load error:", e);
-      }
-    }
-
-    async function saveToFirebase() {
-      try {
-        const ref = getFamilyDocRef();
-        if (!ref) return;
-        const incompleteExists = appData.rounds.some(r => Object.values(r.scores || {}).some(arr => arr.includes(null)));
-        if (incompleteExists) {
-          console.warn("Skipped Firebase sync: incomplete round present.");
-          return;
-        }
-        await ref.set(appData);
-      } catch (e) {
-        console.warn("Firebase save error:", e);
-      }
-    }
-
-    function showScreen(id) {
-      document.querySelectorAll("main section").forEach(s => s.classList.add("hidden"));
-      const el = document.getElementById(id);
-      if (el) el.classList.remove("hidden");
-    }
-
-    function getPlayer(id) {
-      return appData.players.find(p => p.id === id);
-    }
-
-    function getPlayerRounds(id) {
-      return appData.rounds.filter(r => r.scores && r.scores[id]).sort((a, b) => new Date(a.date) - new Date(b.date));
-    }
-
-    function computeHandicap(id) {
-      const rounds = getPlayerRounds(id).slice(-10);
-      if (!rounds.length) return 0;
-      const diffs = rounds.map(r => r.scores[id].reduce((a, b) => a + b, 0) - COURSE_PAR);
-      const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-      return Number(avg.toFixed(1));
-    }
-
-    function getHandicapTimeline(id) {
-      const rounds = getPlayerRounds(id);
-      const timeline = [];
-      for (let i = 0; i < rounds.length; i++) {
-        const slice = rounds.slice(Math.max(0, i - 9), i + 1);
-        const diffs = slice.map(r => r.scores[id].reduce((a, b) => a + b, 0) - COURSE_PAR);
-        const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-        timeline.push({ date: new Date(rounds[i].date), handicap: Number(avg.toFixed(1)) });
-      }
-      return timeline;
-    }
-
-    function getHoleStatsForPlayer(pid, holeIdx) {
-      const rounds = getPlayerRounds(pid);
-      const holeScores = rounds.map(r => r.scores[pid][holeIdx]).filter(v => v !== null && v !== undefined);
-      const last10HoleScores = holeScores.slice(-10);
-      const avg = holeScores.length ? holeScores.reduce((a, b) => a + b, 0) / holeScores.length : null;
-      const avg10 = last10HoleScores.length ? last10HoleScores.reduce((a, b) => a + b, 0) / last10HoleScore  <script src="app.js"></script>
-
+</body>
 </html>
