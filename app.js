@@ -61,7 +61,6 @@ const PAR = 2;
     let handicapChartInstance = null;
     let db = null;
     let expandedPlayerStats = {};
-    let lastCompletedRound = null;
 
     function loadLocal() {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -342,7 +341,7 @@ const PAR = 2;
 
         const nameBtn = document.createElement("button");
         nameBtn.className = "player-name-btn";
-        nameBtn.textContent = collapseStats ? `${isExpanded ? "▼" : "▶"} ${getPlayer(pid).name}` : getPlayer(pid).name;
+        nameBtn.textContent = getPlayer(pid).name;
         nameBtn.type = "button";
         nameBtn.onclick = () => {
           if (!collapseStats) return;
@@ -363,12 +362,6 @@ const PAR = 2;
           Bogey%:${stats.bogeyPct !== null ? stats.bogeyPct.toFixed(1) + "%" : "-"}
         `;
         header.appendChild(statsInline);
-        if (collapseStats && !isExpanded) {
-          const hint = document.createElement("span");
-          hint.className = "stat-toggle-hint";
-          hint.textContent = "tap to expand";
-          header.appendChild(hint);
-        }
         const btnRow = document.createElement("div");
         btnRow.className = "score-buttons";
         [1, 2, 3, 4, 5].forEach(num => {
@@ -468,91 +461,10 @@ const PAR = 2;
       }
       saveLocal();
       await saveToFirebase();
-      lastCompletedRound = JSON.parse(JSON.stringify(currentRound));
-      lastCompletedRound = JSON.parse(JSON.stringify(currentRound));
       renderSummary(currentRound);
       currentRound = null;
       editModeRoundId = null;
       showScreen("screen-summary");
-    }
-
-    function buildRoundSummaryText(round) {
-      const date = new Date(round.date).toLocaleString();
-      const lines = ["Backyard Putting Scorecard", date, ""];
-      let bestDiff = null;
-      let winners = [];
-      round.playerIds.forEach(pid => {
-        const scores = round.scores[pid];
-        const total = scores.reduce((a, b) => a + b, 0);
-        const diff = total - COURSE_PAR;
-        if (bestDiff === null || diff < bestDiff) {
-          bestDiff = diff;
-          winners = [getPlayer(pid).name];
-        } else if (diff === bestDiff) {
-          winners.push(getPlayer(pid).name);
-        }
-        const front = scores.slice(0, 10).reduce((a, b) => a + b, 0);
-        const back = scores.slice(10).reduce((a, b) => a + b, 0);
-        lines.push(`${getPlayer(pid).name}: ${total} (${fmtDiff(diff)}) | Front: ${front} | Back: ${back}`);
-      });
-      lines.push("");
-      lines.push(`Winner: ${winners.join(", ")}`);
-      return lines.join("\n");
-    }
-
-    async function shareScorecard() {
-      const round = lastCompletedRound;
-      if (!round) {
-        alert("No completed round to share.");
-        return;
-      }
-      const summaryCard = document.getElementById("summaryCard");
-      const summaryText = buildRoundSummaryText(round);
-      try {
-        const canvas = await html2canvas(summaryCard, {
-          backgroundColor: "#ffffff",
-          scale: Math.min(window.devicePixelRatio || 2, 3),
-          useCORS: true
-        });
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-        if (!blob) throw new Error("Unable to create image blob");
-        const filename = `backyard-putting-scorecard-${new Date(round.date).toISOString().split("T")[0]}.png`;
-        const file = new File([blob], filename, { type: "image/png" });
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            title: "Backyard Putting Scorecard",
-            text: "Backyard Putting scorecard",
-            files: [file]
-          });
-          return;
-        }
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
-        return;
-      } catch (e) {
-        console.warn("Image share failed, falling back to text:", e);
-      }
-      try {
-        if (navigator.share) {
-          await navigator.share({
-            title: "Backyard Putting Scorecard",
-            text: summaryText
-          });
-          return;
-        }
-      } catch (e) {
-        console.warn("Text share failed:", e);
-      }
-      try {
-        await navigator.clipboard.writeText(summaryText);
-        alert("Scorecard copied. Paste it into a text message.");
-      } catch (e) {
-        alert(summaryText);
-      }
     }
 
     function renderSummary(round) {
@@ -745,7 +657,7 @@ const PAR = 2;
       container.innerHTML = html;
     }
 
-    async async function exportCSV() {
+    function exportCSV() {
       if (!appData.rounds.length) {
         alert("No rounds to export yet.");
         return;
@@ -759,27 +671,11 @@ const PAR = 2;
           });
         });
       });
-      const csv = rows.join("
-");
-      const blob = new Blob([csv], { type: "text/csv" });
-      const filename = `backyard-putting-scores-${new Date().toISOString().split("T")[0]}.csv`;
-      try {
-        const file = new File([blob], filename, { type: "text/csv" });
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            title: "Backyard Putting Scores",
-            text: "Backyard Putting score export",
-            files: [file]
-          });
-          return;
-        }
-      } catch (e) {
-        console.warn("Share failed, falling back to download:", e);
-      }
+      const blob = new Blob([rows.join("\n")], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = filename;
+      a.download = `backyard-putting-scores-${new Date().toISOString().split("T")[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -919,10 +815,7 @@ const PAR = 2;
           showScreen("screen-home");
         }
       };
-      const shareBtn = document.getElementById("btnShareScorecard");
-      if (shareBtn) shareBtn.onclick = shareScorecard;
-      const summaryDoneBtn = document.getElementById("btnSummaryDone");
-      if (summaryDoneBtn) summaryDoneBtn.onclick = () => showScreen("screen-home");
+      document.getElementById("btnSummaryDone").onclick = () => showScreen("screen-home");
       document.addEventListener("click", e => {
         if (!currentRound || !e.target.classList.contains("scorecell")) return;
         const pid = e.target.dataset.player;
