@@ -469,6 +469,7 @@ const PAR = 2;
       saveLocal();
       await saveToFirebase();
       lastCompletedRound = JSON.parse(JSON.stringify(currentRound));
+      lastCompletedRound = JSON.parse(JSON.stringify(currentRound));
       renderSummary(currentRound);
       currentRound = null;
       editModeRoundId = null;
@@ -744,7 +745,7 @@ const PAR = 2;
       container.innerHTML = html;
     }
 
-    async function exportCSV() {
+    async async function exportCSV() {
       if (!appData.rounds.length) {
         alert("No rounds to export yet.");
         return;
@@ -762,8 +763,8 @@ const PAR = 2;
 ");
       const blob = new Blob([csv], { type: "text/csv" });
       const filename = `backyard-putting-scores-${new Date().toISOString().split("T")[0]}.csv`;
-      const file = new File([blob], filename, { type: "text/csv" });
       try {
+        const file = new File([blob], filename, { type: "text/csv" });
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             title: "Backyard Putting Scores",
@@ -918,8 +919,10 @@ const PAR = 2;
           showScreen("screen-home");
         }
       };
-      document.getElementById("btnShareScorecard").onclick = shareScorecard;
-      document.getElementById("btnSummaryDone").onclick = () => showScreen("screen-home");
+      const shareBtn = document.getElementById("btnShareScorecard");
+      if (shareBtn) shareBtn.onclick = shareScorecard;
+      const summaryDoneBtn = document.getElementById("btnSummaryDone");
+      if (summaryDoneBtn) summaryDoneBtn.onclick = () => showScreen("screen-home");
       document.addEventListener("click", e => {
         if (!currentRound || !e.target.classList.contains("scorecell")) return;
         const pid = e.target.dataset.player;
